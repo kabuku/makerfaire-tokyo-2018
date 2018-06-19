@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { fromEvent, interval, asyncScheduler, merge, BehaviorSubject } from 'rxjs';
-import { switchMap, takeUntil, mapTo, map } from 'rxjs/operators';
+import { switchMap, takeUntil, mapTo, map, scan, startWith } from 'rxjs/operators';
 import { Robot, RobotController, Wheel } from './robot';
 
 enum Command {
@@ -102,6 +102,17 @@ const HIDDEN_UNITS = 100;
 const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
 const modelStatusSubject = new BehaviorSubject<string>('');
 
+const resetAll = () => {
+  if (examples.xs) {
+    examples.xs.dispose();
+    examples.ys.dispose();
+    examples.xs = null;
+    examples.ys = null;
+  }
+  exampleCountsSubject.next([0, 0, 0]);
+  modelStatusSubject.next('');
+};
+
 const addExample = (label: Command, example: any) => {
   const y = tf.tidy(() => {
     return tf.oneHot(tf.tensor1d([label]).toInt(), Command.length);
@@ -175,6 +186,20 @@ const startTraining = () => {
   });
 };
 
+const predict = async () => {
+  const predicted = tf.tidy(() => {
+    const img = capture(webcamera);
+    const activation = mobilenet.predict(img);
+    const predictions = model.predict(activation) as tf.Tensor<tf.Rank>;
+    return predictions.as1D().argMax();
+  });
+
+  const classid = (await predicted.data())[0];
+  predicted.dispose();
+  // await tf.nextFrame();
+  return classid;
+};
+
 const setupUI = () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
   setupWebcamera(webcamera);
@@ -192,7 +217,11 @@ const setupUI = () => {
   const backwardCount = document.querySelector('.backward-count');
 
   const trainButton = document.querySelector('.train');
+  const startPredictButton = document.querySelector('.start-predict');
+  const stopPredictButton = document.querySelector('.stop-predict');
+
   const modelStatus = document.querySelector('.model-status');
+  const predictedResult = document.querySelector('.predicted');
 
   const neutralPress$ = createPressStream(neutralButton!).pipe(mapTo(Command.Neutral));
   const forwardPress$ = createPressStream(forwardButton!).pipe(mapTo(Command.Forward));
@@ -225,6 +254,27 @@ const setupUI = () => {
 
   modelStatusSubject.subscribe(status => {
     modelStatus!.textContent = status;
+  });
+
+  const startClick$ = fromEvent(startPredictButton!, 'click');
+  const stopClick$ = fromEvent(stopPredictButton!, 'click');
+
+  startClick$
+    .pipe(
+      switchMap(_ =>
+        interval(100, asyncScheduler).pipe(
+          takeUntil(stopClick$)
+        )
+      )
+    )
+    .subscribe(async _ => {
+      const result = await predict();
+      predictedResult!.textContent = `${['😐', '⏩', '⏪'][result]}`;
+    });
+
+  stopClick$.subscribe(_ => {
+    predictedResult!.textContent = '';
+    resetAll();
   });
 };
 
