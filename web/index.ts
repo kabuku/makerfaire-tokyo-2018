@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
-import { fromEvent, interval, asyncScheduler, merge } from 'rxjs';
-import { switchMap, takeUntil, mapTo, map, subscribeOn } from 'rxjs/operators';
+import { fromEvent, interval, asyncScheduler, merge, BehaviorSubject } from 'rxjs';
+import { switchMap, takeUntil, mapTo, map } from 'rxjs/operators';
 import { Robot, RobotController, Wheel } from './robot';
 
 enum Command {
@@ -86,12 +86,21 @@ const capture = (webcam: HTMLVideoElement): tf.Tensor => tf.tidy(() => {
   return expanded.toFloat().div(tf.scalar(127)).sub(tf.scalar(1));
 });
 
+let model: tf.Model;
 let mobilenet: tf.Model;
 let webcamera: HTMLVideoElement;
 const examples: { xs: any | null, ys: any | null } = {
   xs: null,
   ys: null
 };
+
+const LEARNING_RATE = 0.0001;
+const BATCH_SIZE_FRACTION = 0.4;
+const EPOCHS = 20;
+const HIDDEN_UNITS = 100;
+
+const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
+const modelStatusSubject = new BehaviorSubject<string>('');
 
 const addExample = (label: Command, example: any) => {
   const y = tf.tidy(() => {
@@ -113,15 +122,73 @@ const addExample = (label: Command, example: any) => {
   }
 };
 
+const startTraining = () => {
+
+  if (examples.xs === null) {
+    throw new Error('Add some examples before training!');
+  }
+
+  model = tf.sequential({
+    layers: [
+      tf.layers.flatten({ inputShape: [7, 7, 256] }),
+
+      tf.layers.dense({
+        units: HIDDEN_UNITS,
+        activation: 'relu',
+        kernelInitializer: 'varianceScaling',
+        useBias: true
+      }),
+
+      tf.layers.dense({
+        units: Command.length,
+        kernelInitializer: 'varianceScaling',
+        useBias: false,
+        activation: 'softmax'
+      })
+    ]
+  });
+
+  const optimizer = tf.train.adam(LEARNING_RATE);
+
+  model.compile({ optimizer, loss: 'categoricalCrossentropy' });
+
+  const batchSize = Math.floor(examples.xs.shape[0] * BATCH_SIZE_FRACTION);
+  if (batchSize <= 0) {
+    throw new Error('Batch size is 0 or NaN.');
+  }
+
+  model.fit(examples.xs, examples.ys, {
+    batchSize,
+    epochs: EPOCHS,
+    callbacks: {
+      onBatchEnd: async (_batch, logs?) => {
+        if (logs) {
+          modelStatusSubject.next(`Loss: ${logs.loss.toFixed(5)}`);
+        }
+        await tf.nextFrame();
+      },
+      onTrainEnd: async (_logs) => {
+        const result = modelStatusSubject.value;
+        modelStatusSubject.next(`Done. (${result})`);
+      }
+    }
+  });
+};
+
 const setupUI = () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
   setupWebcamera(webcamera);
+
+  // workaround
+  const image = capture(webcamera);
+  const _ = mobilenet.predict(image);
 
   const neutralButton = document.querySelector('.neutral');
   const backwardButton = document.querySelector('.backward');
   const forwardButton = document.querySelector('.forward');
 
   const trainButton = document.querySelector('.train');
+  const modelStatus = document.querySelector('.model-status');
 
   const neutralPress$ = createPressStream(neutralButton!).pipe(mapTo(Command.Neutral));
   const backPress$ = createPressStream(backwardButton!).pipe(mapTo(Command.Backward));
@@ -133,16 +200,17 @@ const setupUI = () => {
         const image = capture(webcamera);
         const example = mobilenet.predict(image);
         return { label, example };
-      }),
-      subscribeOn(asyncScheduler)
+      })
     )
     .subscribe(({ label, example }) => {
       addExample(label, example);
     });
 
   const trainClick$ = fromEvent(trainButton!, 'click');
-  trainClick$.subscribe(_ => {
-    console.log(examples);
+  trainClick$.subscribe(_ => startTraining());
+
+  modelStatusSubject.subscribe(status => {
+    modelStatus!.textContent = status;
   });
 };
 
