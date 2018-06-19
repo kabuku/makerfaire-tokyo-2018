@@ -1,5 +1,4 @@
 import { Robot, RobotController, Wheel } from './robot';
-import 'tslib';
 
 const velocityInput = document.getElementById('velocityInput') as HTMLInputElement;
 const sendButton = document.getElementById('sendButton') as HTMLButtonElement;

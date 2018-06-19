@@ -24,7 +24,7 @@ export class RobotController {
   }
 
   setVelocity(velocity: number): Promise<Packet> {
-    return new Promise((resolve, reject) =>
+    return new Promise<Packet>((resolve, reject) =>
       this.client.publish(this.topic, velocity.toString(), (err, packet) => err ? reject(err) : resolve(packet))
     );
   }
