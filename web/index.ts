@@ -1,3 +1,5 @@
+import { fromEvent, interval, asyncScheduler, merge } from 'rxjs';
+import { switchMap, takeUntil, map, mapTo } from 'rxjs/operators';
 import { Robot, RobotController, Wheel } from './robot';
 
 const velocityInput = document.getElementById('velocityInput') as HTMLInputElement;
@@ -35,7 +37,36 @@ const setupWebcamera = async (webcam: HTMLVideoElement) => {
   }
 };
 
+const createPressStream = (el: Element) => fromEvent(el, 'mousedown')
+  .pipe(
+    switchMap(_ =>
+      interval(0, asyncScheduler).pipe(
+        takeUntil(fromEvent(window, 'mouseup'))
+      )
+    )
+  );
+
+enum Command {
+  Neutral = 'neutral',
+  Forward = 'forword',
+  Backward = 'backword'
+}
+
+const setupUI = () => {
+  const backwardButton = document.querySelector('.backward');
+  const neutralButton = document.querySelector('.neutral');
+  const forwardButton = document.querySelector('.forward');
+
+  const backPress$ = createPressStream(backwardButton).pipe(mapTo(Command.Backward));
+  const neutralPress$ = createPressStream(neutralButton).pipe(mapTo(Command.Neutral));
+  const forwardPress$ = createPressStream(forwardButton).pipe(mapTo(Command.Forward));
+
+  merge(backPress$, neutralPress$, forwardPress$)
+    .subscribe(console.log);
+};
+
 (async () => {
+  setupUI();
   const webcam = document.querySelector('#webcam') as HTMLVideoElement;
   setupWebcamera(webcam);
 })();

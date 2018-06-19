@@ -27,6 +27,12 @@
       width: 60px;
       overflow: hidden;
     }
+
+    .controls {
+      display: inline-grid;
+      grid-template-columns: repeat(4, 60px);
+      grid-template-rows: 60px;
+    }
   </style>
 </head>
 
@@ -40,6 +46,12 @@
 
   <div class="webcam-box">
     <video autoplay playsinline muted id="webcam" width="224" height="224"></video>
+  </div>
+
+  <div class="controls">
+    <button class="backward">⏪</button>
+    <button class="neutral">😐</button>
+    <button class="forward">⏩</button>
   </div>
 
   <script src="./index.ts"></script>
