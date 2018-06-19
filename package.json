@@ -12,6 +12,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "mqtt": "^2.18.1",
+    "rxjs": "^6.2.1",
     "tslib": "^1.9.2"
   },
   "devDependencies": {
