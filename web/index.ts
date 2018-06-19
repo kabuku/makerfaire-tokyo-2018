@@ -62,7 +62,7 @@ const setupWebcamera = async (webcam: HTMLVideoElement) => {
 const createPressStream = (el: Element) => fromEvent(el, 'mousedown')
   .pipe(
     switchMap(_ =>
-      interval(0, asyncScheduler).pipe(
+      interval(10, asyncScheduler).pipe(
         takeUntil(fromEvent(window, 'mouseup'))
       )
     )
@@ -184,15 +184,19 @@ const setupUI = () => {
   const _ = mobilenet.predict(image);
 
   const neutralButton = document.querySelector('.neutral');
-  const backwardButton = document.querySelector('.backward');
   const forwardButton = document.querySelector('.forward');
+  const backwardButton = document.querySelector('.backward');
+
+  const neutralCount = document.querySelector('.neutral-count');
+  const forwardCount = document.querySelector('.forward-count');
+  const backwardCount = document.querySelector('.backward-count');
 
   const trainButton = document.querySelector('.train');
   const modelStatus = document.querySelector('.model-status');
 
   const neutralPress$ = createPressStream(neutralButton!).pipe(mapTo(Command.Neutral));
-  const backPress$ = createPressStream(backwardButton!).pipe(mapTo(Command.Backward));
   const forwardPress$ = createPressStream(forwardButton!).pipe(mapTo(Command.Forward));
+  const backPress$ = createPressStream(backwardButton!).pipe(mapTo(Command.Backward));
 
   merge(backPress$, neutralPress$, forwardPress$)
     .pipe(
@@ -204,7 +208,17 @@ const setupUI = () => {
     )
     .subscribe(({ label, example }) => {
       addExample(label, example);
+
+      const counts = exampleCountsSubject.value;
+      counts[label] = counts[label] + 1;
+      exampleCountsSubject.next(counts);
     });
+
+  exampleCountsSubject.subscribe(([ne, fw, bw]) => {
+    neutralCount!.textContent = `${ne}`;
+    forwardCount!.textContent = `${fw}`;
+    backwardCount!.textContent = `${bw}`;
+  });
 
   const trainClick$ = fromEvent(trainButton!, 'click');
   trainClick$.subscribe(_ => startTraining());
