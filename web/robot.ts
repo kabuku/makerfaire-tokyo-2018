@@ -1,6 +1,4 @@
-import { connect, Packet } from 'mqtt';
-import { MqttClient } from 'mqtt/types/lib/client';
-
+import { connect, Packet, MqttClient } from 'mqtt';
 
 export const enum Robot {
   NOBUNAGA = 'nobunaga'
