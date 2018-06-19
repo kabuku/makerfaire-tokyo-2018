@@ -1,0 +1,22 @@
+{
+  "name": "makerfaire-tokyo-2018",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=8.0.0",
+    "npm": ">=5.7.0"
+  },
+  "scripts": {
+    "mqtt": "docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
+    "web": "parcel web/index.html"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "mqtt": "^2.18.1",
+    "tslib": "^1.9.2"
+  },
+  "devDependencies": {
+    "@types/mqtt": "^2.5.0",
+    "parcel-bundler": "^1.9.1",
+    "typescript": "^2.9.2"
+  }
+}
