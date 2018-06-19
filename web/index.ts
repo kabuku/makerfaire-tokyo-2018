@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
-import { fromEvent, interval, asyncScheduler, merge, BehaviorSubject } from 'rxjs';
-import { switchMap, takeUntil, mapTo, map, scan, startWith } from 'rxjs/operators';
+import { from, fromEvent, interval, asyncScheduler, merge, BehaviorSubject } from 'rxjs';
+import { flatMap, switchMap, takeUntil, mapTo, map, distinctUntilChanged } from 'rxjs/operators';
 import { Robot, RobotController, Wheel } from './robot';
 
 enum Command {
@@ -12,18 +12,6 @@ enum Command {
 namespace Command {
   export const length = 3
 }
-
-const velocityInput = document.getElementById('velocityInput') as HTMLInputElement;
-const sendButton = document.getElementById('sendButton') as HTMLButtonElement;
-
-RobotController
-  .createInstance(Robot.NOBUNAGA, Wheel.LEFT)
-  .then(controller =>
-    sendButton.addEventListener('click', async () =>
-      await controller.setVelocity(Number(velocityInput.value) || 0)
-    )
-  )
-  .catch(e => console.error(e));
 
 const MODEL_URL = 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
 
@@ -86,6 +74,7 @@ const capture = (webcam: HTMLVideoElement): tf.Tensor => tf.tidy(() => {
   return expanded.toFloat().div(tf.scalar(127)).sub(tf.scalar(1));
 });
 
+let robotController: RobotController;
 let model: tf.Model;
 let mobilenet: tf.Model;
 let webcamera: HTMLVideoElement;
@@ -101,6 +90,7 @@ const HIDDEN_UNITS = 100;
 
 const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
 const modelStatusSubject = new BehaviorSubject<string>('');
+const predictionResultSubject = new BehaviorSubject<Command | null>(null);
 
 const resetAll = () => {
   if (examples.xs) {
@@ -111,6 +101,7 @@ const resetAll = () => {
   }
   exampleCountsSubject.next([0, 0, 0]);
   modelStatusSubject.next('');
+  predictionResultSubject.next(null);
 };
 
 const addExample = (label: Command, example: any) => {
@@ -196,7 +187,6 @@ const predict = async () => {
 
   const classid = (await predicted.data())[0];
   predicted.dispose();
-  // await tf.nextFrame();
   return classid;
 };
 
@@ -265,20 +255,29 @@ const setupUI = () => {
         interval(100, asyncScheduler).pipe(
           takeUntil(stopClick$)
         )
-      )
+      ),
+      flatMap(_ => from(predict())),
+      distinctUntilChanged()
     )
-    .subscribe(async _ => {
-      const result = await predict();
-      predictedResult!.textContent = `${['😐', '⏩', '⏪'][result]}`;
-    });
+    .subscribe(predictionResultSubject);
 
-  stopClick$.subscribe(_ => {
-    predictedResult!.textContent = '';
-    resetAll();
+  predictionResultSubject.subscribe(result => {
+    if (result !== null) {
+      predictedResult!.textContent = `${['😐', '⏩', '⏪'][result]}`;
+    } else {
+      predictedResult!.textContent = '';
+    }
   });
+
+  predictionResultSubject.subscribe(async label => {
+    await robotController.setVelocity(label || 0);
+  });
+
+  stopClick$.subscribe(_ => resetAll());
 };
 
 (async () => {
   mobilenet = await loadMobilenet(MODEL_URL);
+  robotController = await RobotController.createInstance(Robot.NOBUNAGA, Wheel.LEFT);
   setupUI();
 })();
