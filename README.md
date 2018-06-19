@@ -3,7 +3,7 @@
 ## Prerequisite
 
 - Node >= 8.0.0
-- npm >= 5.7,0
+- npm >= 5.7.0
 - Docker
 
 ## Setup
