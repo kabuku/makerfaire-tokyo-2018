@@ -267,9 +267,13 @@ const setupUI = () => {
     }
   });
 
-  predictionResultSubject.subscribe(async label => {
-    await robotController.setVelocity((label || 0) - 1);
-  });
+  predictionResultSubject
+    .subscribe(async label => {
+      if (label !== null) {
+        const velocity = label - 1; // label to velocity
+        await robotController.setVelocity(velocity);
+      }
+    });
 
   stopClick$.subscribe(_ => resetAll());
 };
