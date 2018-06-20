@@ -1,5 +1,7 @@
 # makerfaire-tokyo-2018
 
+[![Build Status](https://travis-ci.org/kabuku/makerfaire-tokyo-2018.svg?branch=master)](https://travis-ci.org/kabuku/makerfaire-tokyo-2018)
+
 ## Prerequisite
 
 - Node >= 8.0.0
