@@ -1,17 +1,15 @@
 import * as tf from '@tensorflow/tfjs';
-import { from, fromEvent, interval, asyncScheduler, merge, BehaviorSubject } from 'rxjs';
+import { from, fromEvent, interval, merge, BehaviorSubject } from 'rxjs';
 import { flatMap, switchMap, takeUntil, mapTo, map, distinctUntilChanged } from 'rxjs/operators';
 import { Robot, RobotController, Wheel } from './robot';
 
-enum Command {
-  Neutral = 0,
-  Forward = 1,
-  Backward = 2
+const enum Command {
+  Backward = 0,
+  Neutral = 1,
+  Forward = 2
 }
 
-namespace Command {
-  export const length = 3
-}
+const commandCount = 3;
 
 const MODEL_URL = 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
 
@@ -21,7 +19,7 @@ const loadMobilenet = async (url: string): Promise<tf.Model> => {
   return tf.model({
     inputs: mn.input,
     outputs: layer.output
-  })
+  });
 };
 
 const setupWebcamera = async (webcam: HTMLVideoElement) => {
@@ -50,7 +48,7 @@ const setupWebcamera = async (webcam: HTMLVideoElement) => {
 const createPressStream = (el: Element) => fromEvent(el, 'mousedown')
   .pipe(
     switchMap(_ =>
-      interval(10, asyncScheduler).pipe(
+      interval(10).pipe(
         takeUntil(fromEvent(window, 'mouseup'))
       )
     )
@@ -106,7 +104,7 @@ const resetAll = () => {
 
 const addExample = (label: Command, example: any) => {
   const y = tf.tidy(() => {
-    return tf.oneHot(tf.tensor1d([label]).toInt(), Command.length);
+    return tf.oneHot(tf.tensor1d([label]).toInt(), commandCount);
   });
   if (examples.xs === null) {
     examples.xs = tf.keep(example);
@@ -142,7 +140,7 @@ const startTraining = () => {
       }),
 
       tf.layers.dense({
-        units: Command.length,
+        units: commandCount,
         kernelInitializer: 'varianceScaling',
         useBias: false,
         activation: 'softmax'
@@ -233,10 +231,10 @@ const setupUI = () => {
       exampleCountsSubject.next(counts);
     });
 
-  exampleCountsSubject.subscribe(([ne, fw, bw]) => {
+  exampleCountsSubject.subscribe(([bw, ne, fw]) => {
+    backwardCount!.textContent = `${bw}`;
     neutralCount!.textContent = `${ne}`;
     forwardCount!.textContent = `${fw}`;
-    backwardCount!.textContent = `${bw}`;
   });
 
   const trainClick$ = fromEvent(trainButton!, 'click');
@@ -252,7 +250,7 @@ const setupUI = () => {
   startClick$
     .pipe(
       switchMap(_ =>
-        interval(100, asyncScheduler).pipe(
+        interval(100).pipe(
           takeUntil(stopClick$)
         )
       ),
@@ -263,21 +261,23 @@ const setupUI = () => {
 
   predictionResultSubject.subscribe(result => {
     if (result !== null) {
-      predictedResult!.textContent = `${['😐', '⏩', '⏪'][result]}`;
+      predictedResult!.textContent = `${['⏪', '😐', '⏩'][result]}`;
     } else {
       predictedResult!.textContent = '';
     }
   });
 
   predictionResultSubject.subscribe(async label => {
-    await robotController.setVelocity(label || 0);
+    await robotController.setVelocity((label || 0) - 1);
   });
 
   stopClick$.subscribe(_ => resetAll());
 };
 
 (async () => {
-  mobilenet = await loadMobilenet(MODEL_URL);
-  robotController = await RobotController.createInstance(Robot.NOBUNAGA, Wheel.LEFT);
+  [robotController, mobilenet] = await Promise.all([
+    RobotController.createInstance(Robot.NOBUNAGA, Wheel.LEFT),
+    loadMobilenet(MODEL_URL)
+  ]);
   setupUI();
 })();
