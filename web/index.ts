@@ -1,6 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
 import { from, fromEvent, interval, merge, BehaviorSubject } from 'rxjs';
-import { flatMap, switchMap, takeUntil, mapTo, map, distinctUntilChanged } from 'rxjs/operators';
+import {
+  flatMap,
+  switchMap,
+  takeUntil,
+  mapTo,
+  map,
+  distinctUntilChanged
+} from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 
@@ -12,7 +19,8 @@ const enum Command {
 
 const commandCount = 3;
 
-const MODEL_URL = 'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
+const MODEL_URL =
+  'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
 
 const loadMobilenet = async (url: string): Promise<tf.Model> => {
   const mn = await tf.loadModel(url);
@@ -36,23 +44,19 @@ const setupWebcamera = async (webcam: HTMLVideoElement) => {
   });
 
   try {
-    const stream = await navigator
-      .mediaDevices
-      .getUserMedia({ video: true, audio: false });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
     webcam.srcObject = stream;
-
   } catch (err) {
     console.error(err);
   }
 };
 
-const createPressStream = (el: Element) => fromEvent(el, 'mousedown')
-  .pipe(
-    switchMap(_ =>
-      interval(10).pipe(
-        takeUntil(fromEvent(window, 'mouseup'))
-      )
-    )
+const createPressStream = (el: Element) =>
+  fromEvent(el, 'mousedown').pipe(
+    switchMap(_ => interval(10).pipe(takeUntil(fromEvent(window, 'mouseup'))))
   );
 
 /**
@@ -66,18 +70,22 @@ const cropImage = (image: tf.Tensor): tf.Tensor => {
   return image.slice(start, end);
 };
 
-const capture = (webcam: HTMLVideoElement): tf.Tensor => tf.tidy(() => {
-  const webcamImage = tf.fromPixels(webcam);
-  const cropped = cropImage(webcamImage);
-  const expanded = cropped.expandDims();
-  return expanded.toFloat().div(tf.scalar(127)).sub(tf.scalar(1));
-});
+const capture = (webcam: HTMLVideoElement): tf.Tensor =>
+  tf.tidy(() => {
+    const webcamImage = tf.fromPixels(webcam);
+    const cropped = cropImage(webcamImage);
+    const expanded = cropped.expandDims();
+    return expanded
+      .toFloat()
+      .div(tf.scalar(127))
+      .sub(tf.scalar(1));
+  });
 
 let robotController: RobotController;
 let model: tf.Model;
 let mobilenet: tf.Model;
 let webcamera: HTMLVideoElement;
-const examples: { xs: any | null, ys: any | null } = {
+const examples: { xs: any | null; ys: any | null } = {
   xs: null,
   ys: null
 };
@@ -123,8 +131,7 @@ const addExample = (label: Command, example: any) => {
   }
 };
 
-const startTraining = () => {
-
+const startTraining = async () => {
   if (examples.xs === null) {
     throw new Error('Add some examples before training!');
   }
@@ -158,7 +165,7 @@ const startTraining = () => {
     throw new Error('Batch size is 0 or NaN.');
   }
 
-  model.fit(examples.xs, examples.ys, {
+  await model.fit(examples.xs, examples.ys, {
     batchSize,
     epochs: EPOCHS,
     callbacks: {
@@ -168,7 +175,7 @@ const startTraining = () => {
         }
         await tf.nextFrame();
       },
-      onTrainEnd: async (_logs) => {
+      onTrainEnd: async _logs => {
         const result = modelStatusSubject.value;
         modelStatusSubject.next(`Done. (${result})`);
       }
@@ -180,7 +187,7 @@ const predict = async () => {
   const predicted = tf.tidy(() => {
     const img = capture(webcamera);
     const activation = mobilenet.predict(img);
-    const predictions = model.predict(activation) as tf.Tensor<tf.Rank>;
+    const predictions = model.predict(activation);
     return predictions.as1D().argMax();
   });
 
@@ -189,9 +196,9 @@ const predict = async () => {
   return classid;
 };
 
-const setupUI = () => {
+const setupUI = async () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
-  setupWebcamera(webcamera);
+  await setupWebcamera(webcamera);
 
   // workaround
   const image = capture(webcamera);
@@ -212,9 +219,15 @@ const setupUI = () => {
   const modelStatus = document.querySelector('.model-status');
   const predictedResult = document.querySelector('.predicted');
 
-  const neutralPress$ = createPressStream(neutralButton!).pipe(mapTo(Command.Neutral));
-  const forwardPress$ = createPressStream(forwardButton!).pipe(mapTo(Command.Forward));
-  const backPress$ = createPressStream(backwardButton!).pipe(mapTo(Command.Backward));
+  const neutralPress$ = createPressStream(neutralButton!).pipe(
+    mapTo(Command.Neutral)
+  );
+  const forwardPress$ = createPressStream(forwardButton!).pipe(
+    mapTo(Command.Forward)
+  );
+  const backPress$ = createPressStream(backwardButton!).pipe(
+    mapTo(Command.Backward)
+  );
 
   merge(backPress$, neutralPress$, forwardPress$)
     .pipe(
@@ -250,11 +263,7 @@ const setupUI = () => {
 
   startClick$
     .pipe(
-      switchMap(_ =>
-        interval(100).pipe(
-          takeUntil(stopClick$)
-        )
-      ),
+      switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
       flatMap(_ => from(predict())),
       distinctUntilChanged()
     )
@@ -268,13 +277,12 @@ const setupUI = () => {
     }
   });
 
-  predictionResultSubject
-    .subscribe(async label => {
-      if (label !== null) {
-        const velocity = label - 1; // label to velocity
-        await robotController.setVelocity(velocity);
-      }
-    });
+  predictionResultSubject.subscribe(label => {
+    if (label !== null) {
+      const velocity = label - 1; // label to velocity
+      robotController.setVelocity(velocity);
+    }
+  });
 
   stopClick$.subscribe(_ => resetAll());
 };
@@ -297,5 +305,5 @@ const setupUI = () => {
     RobotController.createInstance(topic$),
     loadMobilenet(MODEL_URL)
   ]);
-  setupUI();
-})();
+  await setupUI();
+})().catch(err => console.error(err));
