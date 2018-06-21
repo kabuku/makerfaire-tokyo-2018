@@ -1,12 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Kabuku @Maker Faire Tokyo 2018</title>
-  </head>
-  <body>
-    <input id="velocityInput" type="number">
-    <button id="sendButton">送信</button>
-    <script src="./index.ts"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Kabuku @Maker Faire Tokyo 2018</title>
+
+  <style>
+    #no-webcam {
+      display: none;
+      text-align: center;
+      font-size: 30px;
+      padding: 30px;
+      line-height: 30px;
+    }
+
+    #webcam {
+      height: 224px;
+      transform: scaleX(-1);
+    }
+
+    .webcam-box {
+      display: flex;
+      justify-content: center;
+      box-sizing: border-box;
+      border: 1px solid #585858;
+      width: 224px;
+      overflow: hidden;
+    }
+
+    .controls {
+      display: inline-grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-template-rows: 60px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="no-webcam">
+    No webcam is available.
+  </div>
+
+  <div class="webcam-box">
+    <video autoplay playsinline muted id="webcam" width="224" height="224"></video>
+  </div>
+
+  <div class="controls">
+    <button class="backward">⏪</button>
+    <button class="neutral">😐</button>
+    <button class="forward">⏩</button>
+    <div class="backward-count">0</div>
+    <div class="neutral-count">0</div>
+    <div class="forward-count">0</div>
+  </div>
+
+  <button class="train">Train Model</button>
+  <button class="start-predict">Start</button>
+  <button class="stop-predict">Stop</button>
+
+  <div class="model-status"></div>
+
+  <div class="predicted"></div>
+
+  <script src="./index.ts"></script>
+</body>
+
 </html>
