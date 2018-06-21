@@ -36,11 +36,6 @@ Adafruit_MQTT_Subscribe rightController = Adafruit_MQTT_Subscribe(&mqtt, AIO_USE
 
 /*************************** Sketch Code ************************************/
 
-int sec;
-int min_;
-int hour;
-
-int timeZone = -4; // utc-4 eastern daylight time (nyc)
 Servo leftServo;
 Servo rightServo;
 
@@ -103,8 +98,6 @@ void setup() {
   mqtt.subscribe(&rightController);
 
 }
-
-uint32_t x = 0;
 
 void loop() {
   // Ensure the connection to the MQTT server is alive (this will make the first
