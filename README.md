@@ -19,4 +19,7 @@ $ npm ci
 ```sh
 $ npm run mqtt # run MQTT server on Docker
 $ npm run web # run Web server
+
+# If you want to subscribe to a topic ('nobunaga/left', for example)
+$ npx mqtt sub -t 'nobunaga/left' -h 'localhost'
 ```
