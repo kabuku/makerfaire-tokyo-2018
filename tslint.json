@@ -12,6 +12,8 @@
       {
         "singleQuote": true
       }
-    ]
+    ],
+    // https://github.com/palantir/tslint/issues/2736
+    "no-unused-variable": false
   }
 }

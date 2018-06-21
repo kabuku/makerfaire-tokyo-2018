@@ -9,7 +9,7 @@
     "mqtt": "docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
     "web": "parcel web/index.html",
     "precommit": "lint-staged",
-    "ci": "tslint \"web/**/*.ts\" -p tsconfig.json"
+    "ci": "tsc && tslint \"web/**/*.ts\" -p tsconfig.json"
   },
   "license": "UNLICENSED",
   "dependencies": {

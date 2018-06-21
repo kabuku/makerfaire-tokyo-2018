@@ -187,7 +187,7 @@ const predict = async () => {
   const predicted = tf.tidy(() => {
     const img = capture(webcamera);
     const activation = mobilenet.predict(img);
-    const predictions = model.predict(activation);
+    const predictions = model.predict(activation) as tf.Tensor;
     return predictions.as1D().argMax();
   });
 
@@ -202,7 +202,7 @@ const setupUI = async () => {
 
   // workaround
   const image = capture(webcamera);
-  const _ = mobilenet.predict(image);
+  mobilenet.predict(image);
 
   const neutralButton = document.querySelector('.neutral');
   const forwardButton = document.querySelector('.forward');
