@@ -1,7 +1,8 @@
 import * as tf from '@tensorflow/tfjs';
 import { from, fromEvent, interval, merge, BehaviorSubject } from 'rxjs';
 import { flatMap, switchMap, takeUntil, mapTo, map, distinctUntilChanged } from 'rxjs/operators';
-import { Robot, RobotController, Wheel } from './robot';
+import { RobotController } from './robot';
+import { createTopic$ } from './topic';
 
 const enum Command {
   Backward = 0,
@@ -279,8 +280,21 @@ const setupUI = () => {
 };
 
 (async () => {
+  const topic$ = createTopic$(window);
+  const targetSelectors = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>('#target-selector a')
+  );
+  topic$.subscribe(topic =>
+    targetSelectors.forEach(a => {
+      if (a.getAttribute('href') === `#${topic}`) {
+        a.classList.add('active');
+      } else {
+        a.classList.remove('active');
+      }
+    })
+  );
   [robotController, mobilenet] = await Promise.all([
-    RobotController.createInstance(Robot.NOBUNAGA, Wheel.LEFT),
+    RobotController.createInstance(topic$),
     loadMobilenet(MODEL_URL)
   ]);
   setupUI();

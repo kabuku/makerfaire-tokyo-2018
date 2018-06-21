@@ -6,12 +6,16 @@
   <title>Kabuku @Maker Faire Tokyo 2018</title>
 
   <style>
-    #no-webcam {
-      display: none;
+    #target-selector a {
       text-align: center;
-      font-size: 30px;
-      padding: 30px;
-      line-height: 30px;
+      border-radius: 8px;
+      padding: 4px;
+      background-color: #d3d3d3;
+    }
+
+    #target-selector a.active {
+      color: #fff;
+      background-color: #008800;
     }
 
     #webcam {
@@ -38,10 +42,10 @@
 
 <body>
 
-  <div id="no-webcam">
-    No webcam is available.
+  <div id="target-selector">
+    <a href="#nobunaga/left">ノブナガ-左</a>
+    <a href="#nobunaga/right">ノブナガ-右</a>
   </div>
-
   <div class="webcam-box">
     <video autoplay playsinline muted id="webcam" width="224" height="224"></video>
   </div>
