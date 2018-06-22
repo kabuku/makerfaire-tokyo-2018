@@ -19,7 +19,6 @@
     }
 
     #webcam {
-      height: 224px;
       transform: scaleX(-1);
     }
 
@@ -27,15 +26,43 @@
       display: flex;
       justify-content: center;
       box-sizing: border-box;
-      border: 1px solid #585858;
-      width: 224px;
-      overflow: hidden;
+      margin: 20px 0;
     }
 
     .controls {
       display: inline-grid;
       grid-template-columns: repeat(3, 60px);
       grid-template-rows: 60px;
+    }
+
+    .camera-image-box {
+      position: relative;
+      height: 224px;
+    }
+
+    .image-mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      background: #ffffffee;
+    }
+
+    .left .image-mask {
+      left: 50%;
+      right: 0%;
+      width: 50%;
+    }
+
+    .right .image-mask {
+      left: 0;
+      right: 50%;
+      width: 50%;
+    }
+
+    .left .image-divider {
+      display: block;
     }
   </style>
 </head>
@@ -46,8 +73,12 @@
     <a href="#nobunaga/left">ノブナガ-左</a>
     <a href="#nobunaga/right">ノブナガ-右</a>
   </div>
+
   <div class="webcam-box">
-    <video autoplay playsinline muted id="webcam" width="224" height="224"></video>
+    <div class="camera-image-box">
+      <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
+      <div class="image-mask"></div>
+    </div>
   </div>
 
   <div class="controls">

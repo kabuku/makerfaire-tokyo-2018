@@ -6,7 +6,8 @@ import {
   takeUntil,
   mapTo,
   map,
-  distinctUntilChanged
+  distinctUntilChanged,
+  startWith
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -15,6 +16,11 @@ const enum Command {
   Backward = 0,
   Neutral = 1,
   Forward = 2
+}
+
+const enum CameraSide {
+  Left = 'Left',
+  Right = 'Right'
 }
 
 const commandCount = 3;
@@ -45,7 +51,7 @@ const setupWebcamera = async (webcam: HTMLVideoElement) => {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
+      video: { width: 448, height: 224 },
       audio: false
     });
     webcam.srcObject = stream;
@@ -62,7 +68,7 @@ const createPressStream = (el: Element) =>
 /**
  * Resize the given image tensor to a squred one.
  */
-const cropImage = (image: tf.Tensor): tf.Tensor => {
+const cropImageCenter = (image: tf.Tensor): tf.Tensor => {
   const [height, width] = image.shape;
   const size = Math.min(width, height);
   const start = [(height - size) / 2, (width - size) / 2, 0];
@@ -73,7 +79,7 @@ const cropImage = (image: tf.Tensor): tf.Tensor => {
 const capture = (webcam: HTMLVideoElement): tf.Tensor =>
   tf.tidy(() => {
     const webcamImage = tf.fromPixels(webcam);
-    const cropped = cropImage(webcamImage);
+    const cropped = cropImageCenter(webcamImage);
     const expanded = cropped.expandDims();
     return expanded
       .toFloat()
@@ -95,6 +101,7 @@ const BATCH_SIZE_FRACTION = 0.4;
 const EPOCHS = 20;
 const HIDDEN_UNITS = 100;
 
+const activeCameraSideSubject = new BehaviorSubject<CameraSide | null>(null);
 const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
 const modelStatusSubject = new BehaviorSubject<string>('');
 const predictionResultSubject = new BehaviorSubject<Command | null>(null);
@@ -204,6 +211,8 @@ const setupUI = async () => {
   const image = capture(webcamera);
   mobilenet.predict(image);
 
+  const cameraImageBox = document.querySelector('.camera-image-box')!;
+
   const neutralButton = document.querySelector('.neutral');
   const forwardButton = document.querySelector('.forward');
   const backwardButton = document.querySelector('.backward');
@@ -284,7 +293,41 @@ const setupUI = async () => {
     }
   });
 
+  activeCameraSideSubject.subscribe(side => {
+    cameraImageBox.classList.remove('left');
+    cameraImageBox.classList.remove('right');
+
+    switch (side) {
+      case CameraSide.Left:
+        cameraImageBox.classList.add('left');
+        return;
+      case CameraSide.Right:
+        cameraImageBox.classList.add('right');
+        return;
+    }
+  });
+
   stopClick$.subscribe(_ => resetAll());
+
+  fromEvent(window, 'hashchange')
+    .pipe(
+      map(() => window.location.hash),
+      startWith(window.location.hash)
+    )
+    .subscribe(hash => {
+      if (!hash) {
+        activeCameraSideSubject.next(null);
+      } else {
+        const [, side] = hash.slice(1).split('/');
+        if (side === 'right') {
+          activeCameraSideSubject.next(CameraSide.Right);
+        } else if (side === 'left') {
+          activeCameraSideSubject.next(CameraSide.Left);
+        } else {
+          activeCameraSideSubject.next(null);
+        }
+      }
+    });
 };
 
 (async () => {
