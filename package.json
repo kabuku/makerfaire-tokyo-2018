@@ -7,7 +7,9 @@
   },
   "scripts": {
     "mqtt": "docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
-    "web": "parcel web/index.html"
+    "web": "parcel web/index.html",
+    "precommit": "lint-staged",
+    "ci": "tsc && tslint \"web/**/*.ts\" -p tsconfig.json"
   },
   "license": "UNLICENSED",
   "dependencies": {
@@ -18,7 +20,20 @@
   },
   "devDependencies": {
     "@types/mqtt": "^2.5.0",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.2.0",
     "parcel-bundler": "^1.9.1",
+    "prettier": "^1.13.5",
+    "tslint": "^5.10.0",
+    "tslint-config-prettier": "^1.13.0",
+    "tslint-config-standard": "^7.0.0",
+    "tslint-plugin-prettier": "^1.3.0",
     "typescript": "^2.9.2"
+  },
+  "lint-staged": {
+    "web/**/*.ts": [
+      "tslint --fix -p tsconfig.json",
+      "git add"
+    ]
   }
 }

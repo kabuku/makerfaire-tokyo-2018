@@ -1,0 +1,19 @@
+{
+  "rulesDirectory": [
+    "tslint-plugin-prettier"
+  ],
+  "extends": [
+    "tslint-config-standard",
+    "tslint-config-prettier"
+  ],
+  "rules": {
+    "prettier": [
+      true,
+      {
+        "singleQuote": true
+      }
+    ],
+    // https://github.com/palantir/tslint/issues/2736
+    "no-unused-variable": false
+  }
+}
