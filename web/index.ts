@@ -65,22 +65,47 @@ const createPressStream = (el: Element) =>
     switchMap(_ => interval(10).pipe(takeUntil(fromEvent(window, 'mouseup'))))
   );
 
-/**
- * Resize the given image tensor to a squred one.
- */
-const cropImageCenter = (image: tf.Tensor): tf.Tensor => {
+const cropImageLeft = (image: tf.Tensor): tf.Tensor => {
   const [height, width] = image.shape;
-  const size = Math.min(width, height);
-  const start = [(height - size) / 2, (width - size) / 2, 0];
-  const end = [size, size, 3];
-  return image.slice(start, end);
+  const size = height;
+  const destWidth = size * 2;
+  const destHeight = size;
+
+  const begin = [(height - destHeight) / 2, (width - destWidth) / 2, 0];
+  const cropped = image.slice(begin, [destHeight, destWidth, 3]);
+
+  return cropped.slice([0, size, 0], [size, size, 3]); // return sliced only right size
 };
 
-const capture = (webcam: HTMLVideoElement): tf.Tensor =>
+const cropImageRight = (image: tf.Tensor): tf.Tensor => {
+  const [height, width] = image.shape;
+  const size = height;
+  const destWidth = size * 2;
+  const destHeight = size;
+
+  const begin = [(height - destHeight) / 2, (width - destWidth) / 2, 0];
+  const cropped = image.slice(begin, [destHeight, destWidth, 3]);
+
+  return cropped.slice(begin, [size, size, 3]); // return sliced only left size
+};
+
+const capture = (webcam: HTMLVideoElement, side: CameraSide): tf.Tensor =>
   tf.tidy(() => {
     const webcamImage = tf.fromPixels(webcam);
-    const cropped = cropImageCenter(webcamImage);
-    const expanded = cropped.expandDims();
+
+    let image: tf.Tensor;
+
+    switch (side) {
+      case CameraSide.Left:
+        image = cropImageLeft(webcamImage);
+        break;
+      case CameraSide.Right:
+        image = cropImageRight(webcamImage);
+        break;
+      default:
+        throw new Error('select camera side left or right.');
+    }
+    const expanded = image.expandDims();
     return expanded
       .toFloat()
       .div(tf.scalar(127))
@@ -191,8 +216,14 @@ const startTraining = async () => {
 };
 
 const predict = async () => {
+  const activeSide = activeCameraSideSubject.value;
+
+  if (activeSide === null) {
+    throw new Error('no active image side for prediction');
+  }
+
   const predicted = tf.tidy(() => {
-    const img = capture(webcamera);
+    const img = capture(webcamera, activeSide);
     const activation = mobilenet.predict(img);
     const predictions = model.predict(activation) as tf.Tensor;
     return predictions.as1D().argMax();
@@ -208,7 +239,7 @@ const setupUI = async () => {
   await setupWebcamera(webcamera);
 
   // workaround
-  const image = capture(webcamera);
+  const image = capture(webcamera, CameraSide.Left);
   mobilenet.predict(image);
 
   const cameraImageBox = document.querySelector('.camera-image-box')!;
@@ -241,7 +272,11 @@ const setupUI = async () => {
   merge(backPress$, neutralPress$, forwardPress$)
     .pipe(
       map(label => {
-        const image = capture(webcamera);
+        const activeSide = activeCameraSideSubject.value;
+        if (activeSide === null) {
+          throw new Error('no active image side for training');
+        }
+        const image = capture(webcamera, activeSide);
         const example = mobilenet.predict(image);
         return { label, example };
       })
