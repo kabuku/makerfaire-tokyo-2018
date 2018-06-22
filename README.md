@@ -23,3 +23,7 @@ $ npm run web # run Web server
 # If you want to subscribe to a topic ('nobunaga/left', for example)
 $ npx mqtt sub -t 'nobunaga/left' -h 'localhost'
 ```
+
+## use Navigator.getUserMedia in local http network
+- open Chrome with command below ([detail](https://stackoverflow.com/questions/34197653/getusermedia-in-chrome-47-without-using-https/34198101#34198101))  
+  `open -a "/Applications/Google Chrome.app" --args --unsafely-treat-insecure-origin-as-secure="http://www.your-local-server.com"`
