@@ -213,28 +213,28 @@ const setupUI = async () => {
 
   const cameraImageBox = document.querySelector('.camera-image-box')!;
 
-  const neutralButton = document.querySelector('.neutral');
-  const forwardButton = document.querySelector('.forward');
-  const backwardButton = document.querySelector('.backward');
+  const neutralButton = document.querySelector('.neutral')!;
+  const forwardButton = document.querySelector('.forward')!;
+  const backwardButton = document.querySelector('.backward')!;
 
-  const neutralCount = document.querySelector('.neutral-count');
-  const forwardCount = document.querySelector('.forward-count');
-  const backwardCount = document.querySelector('.backward-count');
+  const neutralCount = document.querySelector('.neutral-count')!;
+  const forwardCount = document.querySelector('.forward-count')!;
+  const backwardCount = document.querySelector('.backward-count')!;
 
-  const trainButton = document.querySelector('.train');
-  const startPredictButton = document.querySelector('.start-predict');
-  const stopPredictButton = document.querySelector('.stop-predict');
+  const trainButton = document.querySelector('.train')!;
+  const startPredictButton = document.querySelector('.start-predict')!;
+  const stopPredictButton = document.querySelector('.stop-predict')!;
 
-  const modelStatus = document.querySelector('.model-status');
-  const predictedResult = document.querySelector('.predicted');
+  const modelStatus = document.querySelector('.model-status')!;
+  const predictedResult = document.querySelector('.predicted')!;
 
-  const neutralPress$ = createPressStream(neutralButton!).pipe(
+  const neutralPress$ = createPressStream(neutralButton).pipe(
     mapTo(Command.Neutral)
   );
-  const forwardPress$ = createPressStream(forwardButton!).pipe(
+  const forwardPress$ = createPressStream(forwardButton).pipe(
     mapTo(Command.Forward)
   );
-  const backPress$ = createPressStream(backwardButton!).pipe(
+  const backPress$ = createPressStream(backwardButton).pipe(
     mapTo(Command.Backward)
   );
 
@@ -255,20 +255,20 @@ const setupUI = async () => {
     });
 
   exampleCountsSubject.subscribe(([bw, ne, fw]) => {
-    backwardCount!.textContent = `${bw}`;
-    neutralCount!.textContent = `${ne}`;
-    forwardCount!.textContent = `${fw}`;
+    backwardCount.textContent = `${bw}`;
+    neutralCount.textContent = `${ne}`;
+    forwardCount.textContent = `${fw}`;
   });
 
-  const trainClick$ = fromEvent(trainButton!, 'click');
+  const trainClick$ = fromEvent(trainButton, 'click');
   trainClick$.subscribe(_ => startTraining());
 
   modelStatusSubject.subscribe(status => {
-    modelStatus!.textContent = status;
+    modelStatus.textContent = status;
   });
 
-  const startClick$ = fromEvent(startPredictButton!, 'click');
-  const stopClick$ = fromEvent(stopPredictButton!, 'click');
+  const startClick$ = fromEvent(startPredictButton, 'click');
+  const stopClick$ = fromEvent(stopPredictButton, 'click');
 
   startClick$
     .pipe(
@@ -280,9 +280,9 @@ const setupUI = async () => {
 
   predictionResultSubject.subscribe(result => {
     if (result !== null) {
-      predictedResult!.textContent = `${['⏪', '😐', '⏩'][result]}`;
+      predictedResult.textContent = `${['⏪', '😐', '⏩'][result]}`;
     } else {
-      predictedResult!.textContent = '';
+      predictedResult.textContent = '';
     }
   });
 
@@ -293,7 +293,25 @@ const setupUI = async () => {
     }
   });
 
+  activeCameraSideSubject
+    .pipe(
+      map(side => side !== null),
+      startWith(activeCameraSideSubject.value)
+    )
+    .subscribe(selected => {
+      const addExampleButtons = [backwardButton, neutralButton, forwardButton];
+      addExampleButtons.map(button => {
+        if (!selected) {
+          button.setAttribute('disabled', 'true');
+        } else {
+          button.removeAttribute('disabled');
+        }
+      });
+    });
+
   activeCameraSideSubject.subscribe(side => {
+    resetAll();
+
     cameraImageBox.classList.remove('left');
     cameraImageBox.classList.remove('right');
 
