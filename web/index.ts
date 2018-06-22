@@ -6,7 +6,8 @@ import {
   takeUntil,
   mapTo,
   map,
-  distinctUntilChanged
+  distinctUntilChanged,
+  startWith
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -15,6 +16,11 @@ const enum Command {
   Backward = 0,
   Neutral = 1,
   Forward = 2
+}
+
+const enum CameraSide {
+  Left = 'Left',
+  Right = 'Right'
 }
 
 const commandCount = 3;
@@ -45,7 +51,7 @@ const setupWebcamera = async (webcam: HTMLVideoElement) => {
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
+      video: { width: 448, height: 224 },
       audio: false
     });
     webcam.srcObject = stream;
@@ -59,22 +65,47 @@ const createPressStream = (el: Element) =>
     switchMap(_ => interval(10).pipe(takeUntil(fromEvent(window, 'mouseup'))))
   );
 
-/**
- * Resize the given image tensor to a squred one.
- */
-const cropImage = (image: tf.Tensor): tf.Tensor => {
+const cropImageLeft = (image: tf.Tensor): tf.Tensor => {
   const [height, width] = image.shape;
-  const size = Math.min(width, height);
-  const start = [(height - size) / 2, (width - size) / 2, 0];
-  const end = [size, size, 3];
-  return image.slice(start, end);
+  const size = height;
+  const destWidth = size * 2;
+  const destHeight = size;
+
+  const begin = [(height - destHeight) / 2, (width - destWidth) / 2, 0];
+  const cropped = image.slice(begin, [destHeight, destWidth, 3]);
+
+  return cropped.slice([0, size, 0], [size, size, 3]); // return sliced only right size
 };
 
-const capture = (webcam: HTMLVideoElement): tf.Tensor =>
+const cropImageRight = (image: tf.Tensor): tf.Tensor => {
+  const [height, width] = image.shape;
+  const size = height;
+  const destWidth = size * 2;
+  const destHeight = size;
+
+  const begin = [(height - destHeight) / 2, (width - destWidth) / 2, 0];
+  const cropped = image.slice(begin, [destHeight, destWidth, 3]);
+
+  return cropped.slice(begin, [size, size, 3]); // return sliced only left size
+};
+
+const capture = (webcam: HTMLVideoElement, side: CameraSide): tf.Tensor =>
   tf.tidy(() => {
     const webcamImage = tf.fromPixels(webcam);
-    const cropped = cropImage(webcamImage);
-    const expanded = cropped.expandDims();
+
+    let image: tf.Tensor;
+
+    switch (side) {
+      case CameraSide.Left:
+        image = cropImageLeft(webcamImage);
+        break;
+      case CameraSide.Right:
+        image = cropImageRight(webcamImage);
+        break;
+      default:
+        throw new Error('select camera side left or right.');
+    }
+    const expanded = image.expandDims();
     return expanded
       .toFloat()
       .div(tf.scalar(127))
@@ -95,6 +126,7 @@ const BATCH_SIZE_FRACTION = 0.4;
 const EPOCHS = 20;
 const HIDDEN_UNITS = 100;
 
+const activeCameraSideSubject = new BehaviorSubject<CameraSide | null>(null);
 const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
 const modelStatusSubject = new BehaviorSubject<string>('');
 const predictionResultSubject = new BehaviorSubject<Command | null>(null);
@@ -184,8 +216,14 @@ const startTraining = async () => {
 };
 
 const predict = async () => {
+  const activeSide = activeCameraSideSubject.value;
+
+  if (activeSide === null) {
+    throw new Error('no active image side for prediction');
+  }
+
   const predicted = tf.tidy(() => {
-    const img = capture(webcamera);
+    const img = capture(webcamera, activeSide);
     const activation = mobilenet.predict(img);
     const predictions = model.predict(activation) as tf.Tensor;
     return predictions.as1D().argMax();
@@ -201,38 +239,44 @@ const setupUI = async () => {
   await setupWebcamera(webcamera);
 
   // workaround
-  const image = capture(webcamera);
+  const image = capture(webcamera, CameraSide.Left);
   mobilenet.predict(image);
 
-  const neutralButton = document.querySelector('.neutral');
-  const forwardButton = document.querySelector('.forward');
-  const backwardButton = document.querySelector('.backward');
+  const cameraImageBox = document.querySelector('.camera-image-box')!;
 
-  const neutralCount = document.querySelector('.neutral-count');
-  const forwardCount = document.querySelector('.forward-count');
-  const backwardCount = document.querySelector('.backward-count');
+  const neutralButton = document.querySelector('.neutral')!;
+  const forwardButton = document.querySelector('.forward')!;
+  const backwardButton = document.querySelector('.backward')!;
 
-  const trainButton = document.querySelector('.train');
-  const startPredictButton = document.querySelector('.start-predict');
-  const stopPredictButton = document.querySelector('.stop-predict');
+  const neutralCount = document.querySelector('.neutral-count')!;
+  const forwardCount = document.querySelector('.forward-count')!;
+  const backwardCount = document.querySelector('.backward-count')!;
 
-  const modelStatus = document.querySelector('.model-status');
-  const predictedResult = document.querySelector('.predicted');
+  const trainButton = document.querySelector('.train')!;
+  const startPredictButton = document.querySelector('.start-predict')!;
+  const stopPredictButton = document.querySelector('.stop-predict')!;
 
-  const neutralPress$ = createPressStream(neutralButton!).pipe(
+  const modelStatus = document.querySelector('.model-status')!;
+  const predictedResult = document.querySelector('.predicted')!;
+
+  const neutralPress$ = createPressStream(neutralButton).pipe(
     mapTo(Command.Neutral)
   );
-  const forwardPress$ = createPressStream(forwardButton!).pipe(
+  const forwardPress$ = createPressStream(forwardButton).pipe(
     mapTo(Command.Forward)
   );
-  const backPress$ = createPressStream(backwardButton!).pipe(
+  const backPress$ = createPressStream(backwardButton).pipe(
     mapTo(Command.Backward)
   );
 
   merge(backPress$, neutralPress$, forwardPress$)
     .pipe(
       map(label => {
-        const image = capture(webcamera);
+        const activeSide = activeCameraSideSubject.value;
+        if (activeSide === null) {
+          throw new Error('no active image side for training');
+        }
+        const image = capture(webcamera, activeSide);
         const example = mobilenet.predict(image);
         return { label, example };
       })
@@ -246,20 +290,20 @@ const setupUI = async () => {
     });
 
   exampleCountsSubject.subscribe(([bw, ne, fw]) => {
-    backwardCount!.textContent = `${bw}`;
-    neutralCount!.textContent = `${ne}`;
-    forwardCount!.textContent = `${fw}`;
+    backwardCount.textContent = `${bw}`;
+    neutralCount.textContent = `${ne}`;
+    forwardCount.textContent = `${fw}`;
   });
 
-  const trainClick$ = fromEvent(trainButton!, 'click');
+  const trainClick$ = fromEvent(trainButton, 'click');
   trainClick$.subscribe(_ => startTraining());
 
   modelStatusSubject.subscribe(status => {
-    modelStatus!.textContent = status;
+    modelStatus.textContent = status;
   });
 
-  const startClick$ = fromEvent(startPredictButton!, 'click');
-  const stopClick$ = fromEvent(stopPredictButton!, 'click');
+  const startClick$ = fromEvent(startPredictButton, 'click');
+  const stopClick$ = fromEvent(stopPredictButton, 'click');
 
   startClick$
     .pipe(
@@ -271,9 +315,9 @@ const setupUI = async () => {
 
   predictionResultSubject.subscribe(result => {
     if (result !== null) {
-      predictedResult!.textContent = `${['⏪', '😐', '⏩'][result]}`;
+      predictedResult.textContent = `${['⏪', '😐', '⏩'][result]}`;
     } else {
-      predictedResult!.textContent = '';
+      predictedResult.textContent = '';
     }
   });
 
@@ -284,7 +328,59 @@ const setupUI = async () => {
     }
   });
 
+  activeCameraSideSubject
+    .pipe(
+      map(side => side !== null),
+      startWith(activeCameraSideSubject.value)
+    )
+    .subscribe(selected => {
+      const addExampleButtons = [backwardButton, neutralButton, forwardButton];
+      addExampleButtons.map(button => {
+        if (!selected) {
+          button.setAttribute('disabled', 'true');
+        } else {
+          button.removeAttribute('disabled');
+        }
+      });
+    });
+
+  activeCameraSideSubject.subscribe(side => {
+    resetAll();
+
+    cameraImageBox.classList.remove('left');
+    cameraImageBox.classList.remove('right');
+
+    switch (side) {
+      case CameraSide.Left:
+        cameraImageBox.classList.add('left');
+        return;
+      case CameraSide.Right:
+        cameraImageBox.classList.add('right');
+        return;
+    }
+  });
+
   stopClick$.subscribe(_ => resetAll());
+
+  fromEvent(window, 'hashchange')
+    .pipe(
+      map(() => window.location.hash),
+      startWith(window.location.hash)
+    )
+    .subscribe(hash => {
+      if (!hash) {
+        activeCameraSideSubject.next(null);
+      } else {
+        const [, side] = hash.slice(1).split('/');
+        if (side === 'right') {
+          activeCameraSideSubject.next(CameraSide.Right);
+        } else if (side === 'left') {
+          activeCameraSideSubject.next(CameraSide.Left);
+        } else {
+          activeCameraSideSubject.next(null);
+        }
+      }
+    });
 };
 
 (async () => {
