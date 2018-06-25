@@ -6,8 +6,9 @@
     "npm": ">=5.7.0"
   },
   "scripts": {
-    "mqtt": "docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
-    "web": "parcel web/index.html",
+    "web": "parcel --https web/index.html",
+    "mqtt": "npm run copy-key && docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
+    "copy-key": "cp .cache/primary.crt mqtt/mosquitto/cert/primary.crt && cp .cache/private.pem mqtt/mosquitto/cert/private.pem",
     "precommit": "lint-staged",
     "ci": "tsc && tslint \"web/**/*.ts\" -p tsconfig.json"
   },
