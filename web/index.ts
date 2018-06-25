@@ -6,7 +6,6 @@ import {
   takeUntil,
   mapTo,
   map,
-  distinctUntilChanged,
   startWith
 } from 'rxjs/operators';
 import { RobotController } from './robot';
@@ -307,9 +306,8 @@ const setupUI = async () => {
 
   startClick$
     .pipe(
-      switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
-      flatMap(_ => from(predict())),
-      distinctUntilChanged()
+      switchMap(_ => interval(1000).pipe(takeUntil(stopClick$))),
+      flatMap(_ => from(predict()))
     )
     .subscribe(predictionResultSubject);
 
