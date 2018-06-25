@@ -360,7 +360,10 @@ const setupUI = async () => {
     }
   });
 
-  stopClick$.subscribe(_ => resetAll());
+  stopClick$.subscribe(_ => {
+    robotController.setVelocity(0);
+    resetAll();
+  });
 
   fromEvent(window, 'hashchange')
     .pipe(
