@@ -306,7 +306,7 @@ const setupUI = async () => {
 
   startClick$
     .pipe(
-      switchMap(_ => interval(1000).pipe(takeUntil(stopClick$))),
+      switchMap(_ => interval(300).pipe(takeUntil(stopClick$))),
       flatMap(_ => from(predict()))
     )
     .subscribe(predictionResultSubject);
