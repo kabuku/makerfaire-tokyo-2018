@@ -26,3 +26,9 @@ dist
 *.js
 
 robot/esp8266_client/setting.h
+
+.idea
+
+# keys
+*.crt
+*.pem
