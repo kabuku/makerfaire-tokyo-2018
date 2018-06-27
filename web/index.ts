@@ -1,12 +1,20 @@
 import * as tf from '@tensorflow/tfjs';
-import { from, fromEvent, interval, merge, BehaviorSubject } from 'rxjs';
+import {
+  from,
+  fromEvent,
+  interval,
+  merge,
+  BehaviorSubject,
+  combineLatest
+} from 'rxjs';
 import {
   flatMap,
   switchMap,
   takeUntil,
   mapTo,
   map,
-  startWith
+  startWith,
+  distinctUntilChanged
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -23,6 +31,14 @@ const enum CameraSide {
 }
 
 const commandCount = 3;
+
+const enum ModelStatus {
+  Preparing = 'Preparing',
+  Ready = 'Ready',
+  Training = 'Training',
+  Trained = 'Trained',
+  Predict = 'Predict'
+}
 
 const MODEL_URL =
   'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
@@ -126,9 +142,17 @@ const EPOCHS = 20;
 const HIDDEN_UNITS = 100;
 
 const activeCameraSideSubject = new BehaviorSubject<CameraSide | null>(null);
+
+// to count the number of example. [backward, neutral, forword]
 const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
-const modelStatusSubject = new BehaviorSubject<string>('');
+
+const modelStatusSubject = new BehaviorSubject<ModelStatus>(
+  ModelStatus.Preparing
+);
+
 const predictionResultSubject = new BehaviorSubject<Command | null>(null);
+
+const lossSubject = new BehaviorSubject<number | null>(null);
 
 const resetAll = () => {
   if (examples.xs) {
@@ -138,7 +162,7 @@ const resetAll = () => {
     examples.ys = null;
   }
   exampleCountsSubject.next([0, 0, 0]);
-  modelStatusSubject.next('');
+  modelStatusSubject.next(ModelStatus.Ready);
   predictionResultSubject.next(null);
 };
 
@@ -202,13 +226,12 @@ const startTraining = async () => {
     callbacks: {
       onBatchEnd: async (_batch, logs?) => {
         if (logs) {
-          modelStatusSubject.next(`Loss: ${logs.loss.toFixed(5)}`);
+          lossSubject.next(logs.loss);
         }
         await tf.nextFrame();
       },
       onTrainEnd: async _logs => {
-        const result = modelStatusSubject.value;
-        modelStatusSubject.next(`Done. (${result})`);
+        modelStatusSubject.next(ModelStatus.Trained);
       }
     }
   });
@@ -241,11 +264,12 @@ const setupUI = async () => {
   const image = capture(webcamera, CameraSide.Left);
   mobilenet.predict(image);
 
-  const cameraImageBox = document.querySelector('.camera-image-box')!;
+  const webcamBox = document.querySelector('.webcam-box')!;
 
   const neutralButton = document.querySelector('.neutral')!;
   const forwardButton = document.querySelector('.forward')!;
   const backwardButton = document.querySelector('.backward')!;
+  const addExampleButtons = [backwardButton, neutralButton, forwardButton];
 
   const neutralCount = document.querySelector('.neutral-count')!;
   const forwardCount = document.querySelector('.forward-count')!;
@@ -254,9 +278,7 @@ const setupUI = async () => {
   const trainButton = document.querySelector('.train')!;
   const startPredictButton = document.querySelector('.start-predict')!;
   const stopPredictButton = document.querySelector('.stop-predict')!;
-
-  const modelStatus = document.querySelector('.model-status')!;
-  const predictedResult = document.querySelector('.predicted')!;
+  const logMessage = document.querySelector('.log-message')!;
 
   const neutralPress$ = createPressStream(neutralButton).pipe(
     mapTo(Command.Neutral)
@@ -295,11 +317,8 @@ const setupUI = async () => {
   });
 
   const trainClick$ = fromEvent(trainButton, 'click');
+  trainClick$.pipe(mapTo(ModelStatus.Training)).subscribe(modelStatusSubject);
   trainClick$.subscribe(_ => startTraining());
-
-  modelStatusSubject.subscribe(status => {
-    modelStatus.textContent = status;
-  });
 
   const startClick$ = fromEvent(startPredictButton, 'click');
   const stopClick$ = fromEvent(stopPredictButton, 'click');
@@ -311,11 +330,13 @@ const setupUI = async () => {
     )
     .subscribe(predictionResultSubject);
 
+  startClick$.pipe(mapTo(ModelStatus.Predict)).subscribe(modelStatusSubject);
+
   predictionResultSubject.subscribe(result => {
+    addExampleButtons.forEach(b => b.removeAttribute('predicted'));
     if (result !== null) {
-      predictedResult.textContent = `${['⏪', '😐', '⏩'][result]}`;
-    } else {
-      predictedResult.textContent = '';
+      const button = addExampleButtons[result];
+      button.setAttribute('predicted', 'true');
     }
   });
 
@@ -326,34 +347,18 @@ const setupUI = async () => {
     }
   });
 
-  activeCameraSideSubject
-    .pipe(
-      map(side => side !== null),
-      startWith(activeCameraSideSubject.value)
-    )
-    .subscribe(selected => {
-      const addExampleButtons = [backwardButton, neutralButton, forwardButton];
-      addExampleButtons.map(button => {
-        if (!selected) {
-          button.setAttribute('disabled', 'true');
-        } else {
-          button.removeAttribute('disabled');
-        }
-      });
-    });
-
   activeCameraSideSubject.subscribe(side => {
     resetAll();
 
-    cameraImageBox.classList.remove('left');
-    cameraImageBox.classList.remove('right');
+    webcamBox.classList.remove('left');
+    webcamBox.classList.remove('right');
 
     switch (side) {
       case CameraSide.Left:
-        cameraImageBox.classList.add('left');
+        webcamBox.classList.add('left');
         return;
       case CameraSide.Right:
-        cameraImageBox.classList.add('right');
+        webcamBox.classList.add('right');
         return;
     }
   });
@@ -382,6 +387,75 @@ const setupUI = async () => {
         }
       }
     });
+
+  // Setup button status;
+
+  const setEnable = (elem: Element, enabled: boolean) => {
+    if (enabled) {
+      elem.removeAttribute('disabled');
+    } else {
+      elem.setAttribute('disabled', 'true');
+    }
+  };
+
+  modelStatusSubject.subscribe(status => {
+    switch (status) {
+      case ModelStatus.Preparing:
+        addExampleButtons.forEach(b => setEnable(b, false));
+        break;
+      case ModelStatus.Ready:
+        addExampleButtons.forEach(b => setEnable(b, true));
+        setEnable(trainButton, true);
+        setEnable(startPredictButton, false);
+        setEnable(stopPredictButton, false);
+        break;
+      case ModelStatus.Training:
+        setEnable(trainButton, false);
+        break;
+      case ModelStatus.Trained:
+        setEnable(startPredictButton, true);
+        break;
+      case ModelStatus.Predict:
+        setEnable(startPredictButton, false);
+        setEnable(stopPredictButton, true);
+        break;
+    }
+  });
+
+  // Setup log message
+  combineLatest(
+    modelStatusSubject.pipe(distinctUntilChanged()),
+    lossSubject
+  ).subscribe(([status, loss]) => {
+    let message = '';
+    switch (status) {
+      case ModelStatus.Preparing:
+        message = 'Prepareing...';
+        break;
+      case ModelStatus.Training:
+        if (loss) {
+          message = `Training: Loss = ${loss.toFixed(5)}`;
+        }
+        break;
+      case ModelStatus.Trained:
+        if (loss) {
+          message = `Done: Loss = ${loss.toFixed(5)}`;
+        }
+        break;
+      case ModelStatus.Predict:
+        if (loss) {
+          message = `Running: Loss = ${loss.toFixed(5)}`;
+        }
+    }
+    logMessage.textContent = message;
+  });
+};
+
+window.onload = () => {
+  const hash = window.location.hash.slice(1);
+  if (!hash) {
+    window.location.hash = '#nobunaga/left'; // Navigate to left controll by default
+  }
 };
 
 (async () => {
