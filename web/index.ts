@@ -18,6 +18,7 @@ import {
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
+import { handleKeyEvent } from './keyEventHandler';
 
 const enum Command {
   Backward = 0,
@@ -346,6 +347,8 @@ const setupUI = async () => {
       robotController.setVelocity(velocity);
     }
   });
+
+  handleKeyEvent(robotController);
 
   activeCameraSideSubject.subscribe(side => {
     resetAll();
