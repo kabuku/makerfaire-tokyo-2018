@@ -6,101 +6,173 @@
   <title>Kabuku @Maker Faire Tokyo 2018</title>
 
   <style>
+    :root {
+      --capture-size: 224px;
+    }
+
+    html {
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
     button:disabled {
       opacity: 0.6;
     }
 
+    #root {
+      display: grid;
+      grid-template-rows: 80px 280px 120px 80px;
+      grid-template-columns: 100px 280px 100px;
+      grid-template-areas: ". target-selector ." ". webcamera command-controls" ". model-controls ." ". message .";
+      justify-content: center;
+      justify-items: center;
+      align-items: center;
+    }
+
+    #target-selector {
+      grid-area: target-selector;
+    }
+
     #target-selector a {
+      display: inline-block;
       text-align: center;
-      border-radius: 8px;
-      padding: 4px;
-      background-color: #d3d3d3;
+      font-size: 2rem;
+      color: #666;
+      background: #37474F;
+      width: 4rem;
     }
 
     #target-selector a.active {
       color: #fff;
-      background-color: #008800;
+      background-color: #546E7A;
+    }
+
+    #target-selector a:nth-child(1) {
+      border-radius: 10px 0 0 10px;
+    }
+
+    #target-selector a:nth-child(2) {
+      border-radius: 0 10px 10px 0;
+    }
+
+    .webcam-box {
+      grid-area: webcamera;
+      position: relative;
+      width: var(--capture-size);
+      height: var(--capture-size);
+      border: 4px solid #546E7A;
+      overflow: hidden;
     }
 
     #webcam {
       transform: scaleX(-1);
-    }
-
-    .webcam-box {
-      display: flex;
-      justify-content: center;
-      box-sizing: border-box;
-      margin: 20px 0;
-    }
-
-    .controls {
-      display: inline-grid;
-      grid-template-columns: repeat(3, 60px);
-      grid-template-rows: 60px;
-    }
-
-    .camera-image-box {
-      position: relative;
-      height: 224px;
-    }
-
-    .image-mask {
       position: absolute;
       top: 0;
+      left: -50%;
+    }
+
+    .left #webcam {
       left: 0;
+      right: auto;
+    }
+
+    .right #webcam {
+      left: auto;
       right: 0;
+    }
+
+    .command-controls {
+      grid-area: command-controls;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .command-controls>* {
+      width: 5rem;
+      height: 4rem;
+      position: relative;
+    }
+
+    .command-controls button {
+      width: 100%;
       height: 100%;
-      background: #ffffffee;
+      font-size: 2rem;
     }
 
-    .left .image-mask {
-      left: 50%;
-      right: 0%;
-      width: 50%;
+    .command-controls [predicted] {
+      background-color: skyblue;
     }
 
-    .right .image-mask {
-      left: 0;
-      right: 50%;
-      width: 50%;
+    .forward-count,
+    .neutral-count,
+    .backward-count {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 2px;
     }
 
-    .left .image-divider {
-      display: block;
+    .model-controls {
+      grid-area: model-controls;
+    }
+
+    .model-controls button {
+      font-size: 1.2rem;
+    }
+
+    .log-message {
+      grid-area: message;
+      color: white;
+      background: rgba(0, 0, 0, 0.6);
+      min-width: 200px;
+      text-align: center;
+      padding: 8px;
+      height: 1rem;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="target-selector">
-    <a href="#nobunaga/left">ノブナガ-左</a>
-    <a href="#nobunaga/right">ノブナガ-右</a>
-  </div>
+  <div id="root">
 
-  <div class="webcam-box">
-    <div class="camera-image-box">
-      <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
-      <div class="image-mask"></div>
+    <div id="target-selector">
+      <a href="#nobunaga/left">左</a>
+      <a href="#nobunaga/right">右</a>
     </div>
+
+    <div class="webcam-box">
+      <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
+    </div>
+
+    <div class="command-controls">
+      <div>
+        <button class="forward" disabled="true">⏫</button>
+        <div class="forward-count">0</div>
+      </div>
+      <div>
+        <button class="neutral" disabled="true">😐</button>
+        <div class="neutral-count">0</div>
+      </div>
+      <div>
+        <button class="backward" disabled="true">⏬</button>
+        <div class="backward-count">0</div>
+      </div>
+    </div>
+
+    <div class="model-controls">
+      <button class="train">Train</button>
+      <button class="start-predict">Start</button>
+      <button class="stop-predict">Stop</button>
+    </div>
+
+    <div class="log-message"> </div>
   </div>
-
-  <div class="controls">
-    <button class="backward">⏪</button>
-    <button class="neutral">😐</button>
-    <button class="forward">⏩</button>
-    <div class="backward-count">0</div>
-    <div class="neutral-count">0</div>
-    <div class="forward-count">0</div>
-  </div>
-
-  <button class="train">Train Model</button>
-  <button class="start-predict">Start</button>
-  <button class="stop-predict">Stop</button>
-
-  <div class="model-status"></div>
-
-  <div class="predicted"></div>
 
   <script src="./index.ts"></script>
 </body>
