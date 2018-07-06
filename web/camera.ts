@@ -1,5 +1,5 @@
-import { fromEvent, merge, of, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { fromEvent, Observable } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
 
 export interface CameraManagerParameter {
   target: HTMLVideoElement;
@@ -58,8 +58,8 @@ function setupSelector(
   }
   selector.appendChild(fragment);
   selector.selectedIndex = 0;
-  return merge(
-    of(cameras[0].deviceId),
-    fromEvent(selector, 'change').pipe(map(() => selector.value))
+  return fromEvent(selector, 'change').pipe(
+    map(() => selector.value),
+    startWith(cameras[0].deviceId)
   );
 }
