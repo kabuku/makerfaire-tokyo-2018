@@ -19,6 +19,7 @@ import {
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
+import { setupCamera } from './camera';
 
 const enum Command {
   Backward = 0,
@@ -51,29 +52,6 @@ const loadMobilenet = async (url: string): Promise<tf.Model> => {
     inputs: mn.input,
     outputs: layer.output
   });
-};
-
-const setupWebcamera = async (webcam: HTMLVideoElement) => {
-  webcam.addEventListener('loadeddata', async () => {
-    const { videoWidth, videoHeight } = webcam;
-    const aspectRatio = videoWidth / videoHeight;
-
-    if (videoWidth < videoHeight) {
-      webcam.height = webcam.width / aspectRatio;
-    } else {
-      webcam.width = aspectRatio * webcam.height;
-    }
-  });
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: 448, height: 224 },
-      audio: false
-    });
-    webcam.srcObject = stream;
-  } catch (err) {
-    console.error(err);
-  }
 };
 
 const createPressStream = (el: Element) =>
@@ -259,7 +237,11 @@ const predict = async () => {
 
 const setupUI = async () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
-  await setupWebcamera(webcamera);
+  await setupCamera({
+    target: webcamera,
+    selector: document.getElementById('camera-selector') as HTMLSelectElement,
+    option: { width: 448, height: 224 }
+  });
 
   // workaround
   const image = capture(webcamera, CameraSide.Left);
