@@ -23,7 +23,7 @@ export async function handleKeyEvent(
     document.removeEventListener('keydown', handler);
   } else {
     console.table({
-      '⬆️': {
+      '⏫': {
         left: 'w',
         right: 'p'
       },
@@ -31,7 +31,7 @@ export async function handleKeyEvent(
         left: 's',
         right: 'l'
       },
-      '⬇️': {
+      '⏬': {
         left: 'x',
         right: ','
       }
