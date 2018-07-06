@@ -21,6 +21,8 @@ import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
 import { setupCamera } from './camera';
 
+import './styles.css';
+
 const enum Command {
   Backward = 0,
   Neutral = 1,

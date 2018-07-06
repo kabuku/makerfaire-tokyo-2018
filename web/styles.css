@@ -1,0 +1,221 @@
+:root {
+  --capture-size: 224px;
+  --bg-color: rgb(1, 5, 8);
+  --main-color: #53FFE2;
+  --accent-color: #FADD5A;
+}
+
+@font-face {
+  font-family: 'PixelMPlus';
+  src: url('./assets/font/PixelMplus10-Regular.ttf');
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: 'PixelMPlus';
+  src: url('./assets/font/PixelMplus10-Bold.ttf');
+  font-weight: bold;
+}
+
+html {
+  --grid-color: #08223d;
+  --width: 1px;
+  --gap: 10px;
+  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
+  color: var(--main-color);
+  background-color: var(--bg-color);
+  background-image: linear-gradient(var(--grid-color) var(--width), transparent var(--width)),
+                    linear-gradient(90deg, var(--grid-color) var(--width), transparent var(--width));
+  background-size: var(--gap) var(--gap);
+  background-repeat: repeat;
+}
+
+h1 {
+  text-shadow: var(--main-color) 0 0 8px;
+  font-size: 2.4rem;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  --text-color: #F4AF4C;
+  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--text-color);
+  text-shadow: var(--text-color) 0 0 8px;
+  border: 2px solid currentColor;
+  box-shadow: 0 0 50px rgba(255, 255, 255, .2),
+        inset 0 0 20px rgba(255, 255, 255, .2);
+        transition-property: text-shadow, box-shadow, background-color;
+        transition-duration: 0.1s;
+        transition-timing-function: ease-in;
+}
+
+button:active {
+  background-color: rgba(253, 237, 95, 0.3);
+  text-shadow: var(--text-color) 0 0 16px;
+  box-shadow: 0 0 100px rgba(255, 255, 255, .2),
+        inset 0 0 40px rgba(255, 255, 255, .2);
+}
+
+button:focus, select:focus {
+  outline:0;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+select {
+  cursor: pointer;
+  background-color: transparent;
+  width: 200px;
+  height: 40px;
+  font-size: 0.8rem;
+  color: var(--main-color);
+  border-color: var(--main-color);
+}
+
+main {
+  display: grid;
+  grid-template-rows: 80px 280px 120px 80px;
+  grid-template-columns: 100px 280px 100px;
+  grid-template-areas: ". target-selector ." ". webcamera command-controls" ". model-controls ." ". message .";
+  justify-content: center;
+  justify-items: center;
+  align-items: center;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#camera-selector {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
+#target-selector {
+  grid-area: target-selector;
+}
+
+#target-selector a {
+  display: inline-block;
+  background: transparent;
+  text-align: center;
+  font-size: 2rem;
+  color: var(--accent-color);
+  text-shadow: var(--accent-color) 0 0 4px;
+  width: 4rem;
+  padding: .5rem 1rem;
+  border: 4px solid currentColor;
+  opacity: 0.5;
+  transition-property: opacity, border-color, box-shadow, text-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in;
+}
+
+#target-selector a.active {
+  opacity: 1.0;
+  box-shadow: 0 0 50px rgba(255, 255, 255, .2),
+        inset 0 0 20px rgba(255, 255, 255, .2);
+}
+
+#target-selector a:nth-child(1) {
+  border-radius: 10px 0 0 10px;
+}
+
+#target-selector a:nth-child(2) {
+  border-radius: 0 10px 10px 0;
+}
+
+.webcam-box {
+  --box-border-color: rgb(32, 202, 117);
+  grid-area: webcamera;
+  position: relative;
+  width: var(--capture-size);
+  height: var(--capture-size);
+  background-color: rgb(32, 202, 117, 0.2);
+  border: 4px solid var(--box-border-color);
+  box-shadow: 0 0 40px var(--box-border-color);
+  overflow: hidden;
+}
+
+#webcam {
+  transform: scaleX(-1);
+  position: absolute;
+  top: 0;
+  left: -50%;
+}
+
+.left #webcam {
+  left: 0;
+  right: auto;
+}
+
+.right #webcam {
+  left: auto;
+  right: 0;
+}
+
+.command-controls {
+  grid-area: command-controls;
+  display: flex;
+  flex-direction: column;
+}
+
+.command-controls>* {
+  --button-size: 74px;
+  position: relative;
+  width: var(--button-size);
+  height: var(--button-size);
+  margin: 4px 0;
+}
+
+.command-controls button {
+  width: 100%;
+  height: 100%;
+  font-size: 2rem;
+}
+
+.command-controls [predicted] {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.forward-count,
+.neutral-count,
+.backward-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px;
+  z-index: -1;
+}
+
+.model-controls {
+  grid-area: model-controls;
+}
+
+.model-controls button {
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+}
+
+.log-message {
+  grid-area: message;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  min-width: 200px;
+  text-align: center;
+  padding: 8px;
+  height: 1rem;
+}
