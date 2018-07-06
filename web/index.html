@@ -10,42 +10,45 @@
 
   <div id="root">
 
+    <h1>ガンメンタイセン</h1>
+
     <select id="camera-selector"></select>
 
-    <div id="target-selector">
-      <a href="#nobunaga/left">左</a>
-      <a href="#nobunaga/right">右</a>
-    </div>
-
-    <div class="webcam-box">
-      <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
-    </div>
-
-    <div class="command-controls">
-      <div>
-        <button class="forward" disabled="true">⏫</button>
-        <div class="forward-count">0</div>
+    <main>
+      <div id="target-selector">
+        <a href="#nobunaga/left">左</a>
+        <a href="#nobunaga/right">右</a>
       </div>
-      <div>
-        <button class="neutral" disabled="true">😐</button>
-        <div class="neutral-count">0</div>
+
+      <div class="webcam-box">
+        <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
       </div>
-      <div>
-        <button class="backward" disabled="true">⏬</button>
-        <div class="backward-count">0</div>
+
+      <div class="command-controls">
+        <div>
+          <button class="forward" disabled="true">⏫</button>
+          <div class="forward-count">0</div>
+        </div>
+        <div>
+          <button class="neutral" disabled="true">😐</button>
+          <div class="neutral-count">0</div>
+        </div>
+        <div>
+          <button class="backward" disabled="true">⏬</button>
+          <div class="backward-count">0</div>
+        </div>
       </div>
-    </div>
 
-    <div class="model-controls">
-      <button class="train">Train</button>
-      <button class="start-predict">Start</button>
-      <button class="stop-predict">Stop</button>
-    </div>
+      <div class="model-controls">
+        <button class="train">Train</button>
+        <button class="start-predict">Start</button>
+        <button class="stop-predict">Stop</button>
+      </div>
 
-    <div class="log-message"> </div>
-  </div>
+      <div class="log-message"> </div>
+    </main>
 
-  <script src="./index.ts"></script>
+    <script src="./index.ts"></script>
 </body>
 
 </html>
