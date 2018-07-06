@@ -330,8 +330,6 @@ const setupUI = async () => {
     }
   });
 
-  handleKeyEvent(robotController);
-
   activeCameraSideSubject.subscribe(side => {
     resetAll();
 
@@ -459,7 +457,8 @@ window.onload = () => {
   );
   [robotController, mobilenet] = await Promise.all([
     RobotController.createInstance(topic$),
-    loadMobilenet(MODEL_URL)
+    loadMobilenet(MODEL_URL),
+    handleKeyEvent(topic$)
   ]);
   await setupUI();
 })().catch(err => console.error(err));
