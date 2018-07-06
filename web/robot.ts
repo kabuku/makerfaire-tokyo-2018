@@ -8,7 +8,9 @@ export class RobotController {
   private constructor(client: MqttClient, topic$: Observable<string>) {
     combineLatest(topic$, this.velocity$)
       .pipe(
-        map(([topic, velocity]) => client.publish(topic, velocity.toString()))
+        map(([topic, velocity]) =>
+          client.publish(topic, velocity.toString(), { qos: 1 })
+        )
       )
       .subscribe();
   }
