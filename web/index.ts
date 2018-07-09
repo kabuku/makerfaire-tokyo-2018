@@ -19,23 +19,12 @@ import {
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
-import { setupCamera } from './camera';
+import { CameraSide, setupCamera, capture } from './camera';
+import { commandCount, Command } from './classifier';
+import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './oneside.css';
-
-const enum Command {
-  Backward = 0,
-  Neutral = 1,
-  Forward = 2
-}
-
-const enum CameraSide {
-  Left = 'Left',
-  Right = 'Right'
-}
-
-const commandCount = 3;
 
 const enum ModelStatus {
   Preparing = 'Preparing',
@@ -44,70 +33,6 @@ const enum ModelStatus {
   Trained = 'Trained',
   Predict = 'Predict'
 }
-
-const MODEL_URL =
-  'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
-
-const loadMobilenet = async (url: string): Promise<tf.Model> => {
-  const mn = await tf.loadModel(url);
-  const layer = mn.getLayer('conv_pw_13_relu');
-  return tf.model({
-    inputs: mn.input,
-    outputs: layer.output
-  });
-};
-
-const createPressStream = (el: Element) =>
-  fromEvent(el, 'mousedown').pipe(
-    switchMap(_ => interval(10).pipe(takeUntil(fromEvent(window, 'mouseup'))))
-  );
-
-const cropImageLeft = (image: tf.Tensor): tf.Tensor => {
-  const [height, width] = image.shape;
-  const size = height;
-  const destWidth = size * 2;
-  const destHeight = size;
-
-  const begin = [(height - destHeight) / 2, (width - destWidth) / 2, 0];
-  const cropped = image.slice(begin, [destHeight, destWidth, 3]);
-
-  return cropped.slice([0, size, 0], [size, size, 3]); // return sliced only right size
-};
-
-const cropImageRight = (image: tf.Tensor): tf.Tensor => {
-  const [height, width] = image.shape;
-  const size = height;
-  const destWidth = size * 2;
-  const destHeight = size;
-
-  const begin = [(height - destHeight) / 2, (width - destWidth) / 2, 0];
-  const cropped = image.slice(begin, [destHeight, destWidth, 3]);
-
-  return cropped.slice(begin, [size, size, 3]); // return sliced only left size
-};
-
-const capture = (webcam: HTMLVideoElement, side: CameraSide): tf.Tensor =>
-  tf.tidy(() => {
-    const webcamImage = tf.fromPixels(webcam);
-
-    let image: tf.Tensor;
-
-    switch (side) {
-      case CameraSide.Left:
-        image = cropImageLeft(webcamImage);
-        break;
-      case CameraSide.Right:
-        image = cropImageRight(webcamImage);
-        break;
-      default:
-        throw new Error('select camera side left or right.');
-    }
-    const expanded = image.expandDims();
-    return expanded
-      .toFloat()
-      .div(tf.scalar(127))
-      .sub(tf.scalar(1));
-  });
 
 let robotController: RobotController;
 let model: tf.Model;
@@ -241,7 +166,7 @@ const predict = async () => {
 const setupUI = async () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
   await setupCamera({
-    target: webcamera,
+    targets: [webcamera],
     selector: document.getElementById('camera-selector') as HTMLSelectElement,
     option: { width: 448, height: 224 }
   });
@@ -460,7 +385,7 @@ window.onload = () => {
   );
   [robotController, mobilenet] = await Promise.all([
     RobotController.createInstance(topic$),
-    loadMobilenet(MODEL_URL),
+    loadMobilenet(),
     handleKeyEvent(topic$)
   ]);
   await setupUI();
