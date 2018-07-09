@@ -1,0 +1,103 @@
+main {
+  display: grid;
+  grid-template-columns: 280px 120px 120px 280px;
+  grid-template-rows: 280px 100px 120px;
+  grid-template-areas:
+    "webcamera-left command-controls-left command-controls-right webcamera-right"
+    "message-left . . message-right"
+    ". model-controls model-controls .";
+  justify-content: center;
+  justify-items: center;
+  align-items: center;
+}
+
+.webcam-box {
+  --box-border-color: rgb(32, 202, 117);
+  position: relative;
+  width: var(--capture-size);
+  height: var(--capture-size);
+  background-color: rgb(32, 202, 117, 0.2);
+  border: 4px solid var(--box-border-color);
+  box-shadow: 0 0 40px var(--box-border-color);
+  overflow: hidden;
+}
+
+.webcam-box video {
+  transform: scaleX(-1);
+  position: absolute;
+}
+
+.webcam-box.left video {
+  grid-area: webcamera-left;
+  left: 0;
+  right: auto;
+}
+
+.webcam-box.right video {
+  grid-area: webcamera-right;
+  left: auto;
+  right: 0;
+}
+
+.command-controls.left {
+  grid-area: command-controls-left;
+}
+
+.command-controls.right {
+  grid-area: command-controls-right;
+}
+
+.command-control {
+  --button-size: 74px;
+  position: relative;
+  width: var(--button-size);
+  height: var(--button-size);
+  margin: 4px 0;
+}
+
+.command-control button {
+  width: 100%;
+  height: 100%;
+  font-size: 2rem;
+}
+
+.command-control .count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px;
+  z-index: -1;
+}
+
+.log-message {
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  text-align: center;
+  padding: 8px;
+  height: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  min-width: 200px;
+}
+
+.log-message.left {
+  grid-area: message-left;
+}
+
+.log-message.right {
+  grid-area: message-right;
+}
+
+.model-controls {
+  grid-area: model-controls;
+  display: grid;
+  grid-gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  justify-content: center;
+}
+
+.model-controls button {
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+}
