@@ -5,7 +5,8 @@ import {
   interval,
   merge,
   BehaviorSubject,
-  combineLatest
+  combineLatest,
+  Observable
 } from 'rxjs';
 import {
   flatMap,
@@ -20,20 +21,13 @@ import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
 import { CameraSide, setupCamera, capture } from './camera';
-import { commandCount, Command } from './classifier';
+import { commandCount, Command, ModelStatus } from './classifier';
 import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './oneside.css';
 
-const enum ModelStatus {
-  Preparing = 'Preparing',
-  Ready = 'Ready',
-  Training = 'Training',
-  Trained = 'Trained',
-  Predict = 'Predict'
-}
-
+let topic$: Observable<string>;
 let robotController: RobotController;
 let model: tf.Model;
 let mobilenet: tf.Model;
@@ -357,6 +351,7 @@ const setupUI = async () => {
         if (loss) {
           message = `Running: Loss = ${loss.toFixed(5)}`;
         }
+        break;
     }
     logMessage.textContent = message;
   });
@@ -370,19 +365,20 @@ window.onload = () => {
 };
 
 (async () => {
-  const topic$ = createTopic$(window);
+  topic$ = createTopic$(window);
   const targetSelectors = Array.from(
     document.querySelectorAll<HTMLAnchorElement>('#target-selector a')
   );
-  topic$.subscribe(topic =>
+  topic$.subscribe(topic => {
     targetSelectors.forEach(a => {
       if (a.getAttribute('href') === `#${topic}`) {
         a.classList.add('active');
       } else {
         a.classList.remove('active');
       }
-    })
-  );
+    });
+  });
+
   [robotController, mobilenet] = await Promise.all([
     RobotController.createInstance(topic$),
     loadMobilenet(),
