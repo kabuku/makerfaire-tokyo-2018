@@ -22,6 +22,7 @@ import { handleKeyEvent } from './keyEventHandler';
 import { setupCamera } from './camera';
 
 import './styles.css';
+import './oneside.css';
 
 const enum Command {
   Backward = 0,
@@ -251,14 +252,14 @@ const setupUI = async () => {
 
   const webcamBox = document.querySelector('.webcam-box')!;
 
-  const neutralButton = document.querySelector('.neutral')!;
-  const forwardButton = document.querySelector('.forward')!;
-  const backwardButton = document.querySelector('.backward')!;
+  const neutralButton = document.querySelector('.neutral button')!;
+  const forwardButton = document.querySelector('.forward button')!;
+  const backwardButton = document.querySelector('.backward button')!;
   const addExampleButtons = [backwardButton, neutralButton, forwardButton];
 
-  const neutralCount = document.querySelector('.neutral-count')!;
-  const forwardCount = document.querySelector('.forward-count')!;
-  const backwardCount = document.querySelector('.backward-count')!;
+  const neutralCount = document.querySelector('.neutral .count')!;
+  const forwardCount = document.querySelector('.forward .count')!;
+  const backwardCount = document.querySelector('.backward .count')!;
 
   const trainButton = document.querySelector('.train')!;
   const startPredictButton = document.querySelector('.start-predict')!;
