@@ -14,7 +14,8 @@ import {
   mapTo,
   map,
   startWith,
-  distinctUntilChanged
+  distinctUntilChanged,
+  debounceTime
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -310,8 +311,9 @@ const setupUI = async () => {
 
   startClick$
     .pipe(
-      switchMap(_ => interval(300).pipe(takeUntil(stopClick$))),
-      flatMap(_ => from(predict()))
+      switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
+      flatMap(_ => from(predict())),
+      distinctUntilChanged()
     )
     .subscribe(predictionResultSubject);
 
@@ -325,12 +327,17 @@ const setupUI = async () => {
     }
   });
 
-  predictionResultSubject.subscribe(label => {
-    if (label !== null) {
-      const velocity = label - 1; // label to velocity
-      robotController.setVelocity(velocity);
-    }
-  });
+  predictionResultSubject
+    .pipe(
+      debounceTime(150),
+      distinctUntilChanged()
+    )
+    .subscribe(label => {
+      if (label !== null) {
+        const velocity = label - 1; // label to velocity
+        robotController.setVelocity(velocity);
+      }
+    });
 
   activeCameraSideSubject.subscribe(side => {
     resetAll();
