@@ -60,7 +60,7 @@ class Led(object):
 
 class MQTTClient(object):
 
-    def __init__(self, robot_name):
+    def __init__(self, robot_name, server_host):
         self.client = mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -71,9 +71,10 @@ class MQTTClient(object):
         # setup GPIO for LED
         self.led_connect = Led(26)
         self.led_message = Led(21)
+        self.server_host = server_host
 
     def connect(self):
-        self.client.connect("192.168.86.30", 1883, 60)
+        self.client.connect(self.server_host, 1883, 60)
 
         # Blocking call that processes network traffic, dispatches callbacks and
         # handles reconnecting.
@@ -113,12 +114,13 @@ class MQTTClient(object):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('-n', '--name', default="nobunaga")
+    p.add_argument('-s', '--server', default="tinjyuuMac.local", help="mqtt server hostname or ip")
 
     client_args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
-    m_client = MQTTClient(client_args.name)
+    m_client = MQTTClient(client_args.name, client_args.server)
     signal.signal(signal.SIGINT, m_client.signal_handler)
     signal.signal(signal.SIGTERM, m_client.signal_handler)
     m_client.connect()
