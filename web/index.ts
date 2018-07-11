@@ -329,7 +329,7 @@ const setupUI = async () => {
 
   predictionResultSubject
     .pipe(
-      debounceTime(100),
+      debounceTime(150),
       distinctUntilChanged()
     )
     .subscribe(label => {
