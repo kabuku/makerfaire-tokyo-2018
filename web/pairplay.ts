@@ -1,5 +1,13 @@
 import * as tf from '@tensorflow/tfjs';
-import { combineLatest, fromEvent, merge, interval, from, of } from 'rxjs';
+import {
+  combineLatest,
+  fromEvent,
+  merge,
+  interval,
+  from,
+  of,
+  Observable
+} from 'rxjs';
 import {
   map,
   mapTo,
@@ -12,7 +20,7 @@ import {
 
 import { RobotController } from './robot';
 import { CameraSide, setupCamera, capture } from './camera';
-import { Command, Classifier, ModelStatus } from './classifier';
+import { Command, Classifier, ModelStatus, ControlStatus } from './classifier';
 import { loadMobilenet, createPressStream } from './helper';
 
 import './styles.css';
@@ -26,7 +34,18 @@ let classifierRight: Classifier;
 let videoLeft: HTMLVideoElement;
 let videoRight: HTMLVideoElement;
 
-const setupCommandControl = (cameraSide: CameraSide) => {
+const setEnable = (elem: Element, enabled: boolean) => {
+  if (enabled) {
+    elem.removeAttribute('disabled');
+  } else {
+    elem.setAttribute('disabled', 'true');
+  }
+};
+
+const setupCommandControl = (
+  cameraSide: CameraSide,
+  trainButton: Element
+): Observable<{ trained: boolean; started: boolean }> => {
   let side: string;
   let video: HTMLVideoElement;
   let classifier: Classifier;
@@ -93,24 +112,22 @@ const setupCommandControl = (cameraSide: CameraSide) => {
     }
   });
 
-  const setEnable = (elem: Element, enabled: boolean) => {
-    if (enabled) {
-      elem.removeAttribute('disabled');
-    } else {
-      elem.setAttribute('disabled', 'true');
-    }
-  };
-
-  classifier.modelStatus$.subscribe(status => {
-    switch (status) {
-      case ModelStatus.Preparing:
-        addExampleButtons.forEach(b => setEnable(b, false));
-        break;
-      case ModelStatus.Ready:
-        addExampleButtons.forEach(b => setEnable(b, true));
-        break;
-    }
-  });
+  return combineLatest(classifier.modelStatus$, classifier.controlStatus$).pipe(
+    map(([modelStatus, controlStatus]) => {
+      const trainable =
+        modelStatus !== ModelStatus.Preparing &&
+        modelStatus !== ModelStatus.Training;
+      addExampleButtons.forEach(b => setEnable(b, trainable));
+      setEnable(
+        trainButton,
+        trainable && controlStatus === ControlStatus.Stopped
+      );
+      return {
+        trained: modelStatus === ModelStatus.Trained,
+        started: controlStatus === ControlStatus.Started
+      };
+    })
+  );
 };
 
 const setupLogMessage = (cameraSide: CameraSide) => {
@@ -151,11 +168,6 @@ const setupLogMessage = (cameraSide: CameraSide) => {
           message = `Done: Loss = ${loss.toFixed(5)}`;
         }
         break;
-      case ModelStatus.Predict:
-        if (loss) {
-          message = `Running: Loss = ${loss.toFixed(5)}`;
-        }
-        break;
     }
     logMessage.textContent = message;
   });
@@ -184,12 +196,6 @@ const setupUI = async () => {
   const image = capture(videoLeft, CameraSide.Left);
   mobilenet.predict(image);
 
-  setupCommandControl(CameraSide.Left);
-  setupCommandControl(CameraSide.Right);
-
-  setupLogMessage(CameraSide.Left);
-  setupLogMessage(CameraSide.Right);
-
   const trainLeftButton = document.querySelector('.train-left')!;
   const trainRightButton = document.querySelector('.train-right')!;
   const startPredictButton = document.querySelector('.start-predict')!;
@@ -203,8 +209,25 @@ const setupUI = async () => {
   trainLeftClick$.subscribe(() => classifierLeft.startTraining());
   trainRightClick$.subscribe(() => classifierRight.startTraining());
 
+  combineLatest(
+    setupCommandControl(CameraSide.Left, trainLeftButton),
+    setupCommandControl(CameraSide.Right, trainRightButton)
+  ).subscribe(([left, right]) => {
+    setEnable(startPredictButton, left.trained && right.trained);
+    const started = left.started && right.started;
+    startPredictButton.classList.toggle('hidden', started);
+    stopPredictButton.classList.toggle('hidden', !started);
+  });
+
+  setupLogMessage(CameraSide.Left);
+  setupLogMessage(CameraSide.Right);
+
   startClick$
     .pipe(
+      map(_ => {
+        classifierLeft.setControlStatus(ControlStatus.Started);
+        classifierRight.setControlStatus(ControlStatus.Started);
+      }),
       switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
       flatMap(_ =>
         merge(
@@ -218,8 +241,10 @@ const setupUI = async () => {
   stopClick$.subscribe(() => {
     robotControllerLeft.setVelocity(0);
     robotControllerRight.setVelocity(0);
-    classifierLeft.initialize();
-    classifierRight.initialize();
+    classifierLeft.clearPrediction();
+    classifierRight.clearPrediction();
+    classifierLeft.setControlStatus(ControlStatus.Stopped);
+    classifierRight.setControlStatus(ControlStatus.Stopped);
   });
 };
 
@@ -260,6 +285,6 @@ const setupUI = async () => {
 
   await setupUI();
 
-  classifierLeft.initialize();
-  classifierRight.initialize();
+  classifierLeft.setReady();
+  classifierRight.setReady();
 })().catch(err => console.error(err));

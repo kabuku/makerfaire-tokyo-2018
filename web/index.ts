@@ -22,7 +22,7 @@ import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
 import { CameraSide, setupCamera, capture } from './camera';
-import { Command, ModelStatus, Classifier } from './classifier';
+import { Command, ModelStatus, Classifier, ControlStatus } from './classifier';
 import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
@@ -103,6 +103,7 @@ const setupUI = async () => {
 
   startClick$
     .pipe(
+      map(_ => classifier.setControlStatus(ControlStatus.Started)),
       switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
       flatMap(_ => from(classifier.predict(webcamera, mobilenet)))
     )
@@ -145,7 +146,8 @@ const setupUI = async () => {
 
   stopClick$.subscribe(_ => {
     robotController.setVelocity(0);
-    classifier.initialize();
+    classifier.clearPrediction();
+    classifier.setControlStatus(ControlStatus.Stopped);
   });
 
   fromEvent(window, 'hashchange')
@@ -172,29 +174,27 @@ const setupUI = async () => {
     }
   };
 
-  classifier.modelStatus$.subscribe(status => {
-    switch (status) {
-      case ModelStatus.Preparing:
-        addExampleButtons.forEach(b => setEnable(b, false));
-        break;
-      case ModelStatus.Ready:
-        addExampleButtons.forEach(b => setEnable(b, true));
-        setEnable(trainButton, true);
-        setEnable(startPredictButton, classifier.hasModel());
-        setEnable(stopPredictButton, false);
-        break;
-      case ModelStatus.Training:
-        setEnable(trainButton, false);
-        break;
-      case ModelStatus.Trained:
-        setEnable(startPredictButton, true);
-        break;
-      case ModelStatus.Predict:
-        setEnable(startPredictButton, false);
-        setEnable(stopPredictButton, true);
-        break;
+  combineLatest(classifier.modelStatus$, classifier.controlStatus$).subscribe(
+    ([modelStatus, controlStatus]) => {
+      const trainable =
+        modelStatus !== ModelStatus.Preparing &&
+        modelStatus !== ModelStatus.Training;
+      addExampleButtons.forEach(b => setEnable(b, trainable));
+      setEnable(
+        trainButton,
+        trainable && controlStatus === ControlStatus.Stopped
+      );
+      setEnable(startPredictButton, modelStatus === ModelStatus.Trained);
+      startPredictButton.classList.toggle(
+        'hidden',
+        controlStatus === ControlStatus.Started
+      );
+      stopPredictButton.classList.toggle(
+        'hidden',
+        controlStatus === ControlStatus.Stopped
+      );
     }
-  });
+  );
 
   // Setup log message
   combineLatest(
@@ -214,11 +214,6 @@ const setupUI = async () => {
       case ModelStatus.Trained:
         if (loss) {
           message = `Done: Loss = ${loss.toFixed(5)}`;
-        }
-        break;
-      case ModelStatus.Predict:
-        if (loss) {
-          message = `Running: Loss = ${loss.toFixed(5)}`;
         }
         break;
     }
@@ -255,5 +250,5 @@ window.onload = () => {
   ]);
   classifier = new Classifier();
   await setupUI();
-  classifier.initialize();
+  classifier.setReady();
 })().catch(err => console.error(err));

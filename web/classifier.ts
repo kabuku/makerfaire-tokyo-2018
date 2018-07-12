@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { distinctUntilChanged } from '../node_modules/rxjs/operators';
+import { distinctUntilChanged } from 'rxjs/operators';
 
 import { CameraSide, capture } from './camera';
 
@@ -20,6 +20,11 @@ export const enum ModelStatus {
   Predict = 'Predict'
 }
 
+export const enum ControlStatus {
+  Stopped = 'Stopped',
+  Started = 'Started'
+}
+
 interface Examples {
   xs: any | null;
   ys: any | null;
@@ -33,6 +38,7 @@ const HIDDEN_UNITS = 100;
 export class Classifier {
   readonly exampleCounts$: Observable<number[]>;
   readonly modelStatus$: Observable<ModelStatus>;
+  readonly controlStatus$: Observable<ControlStatus>;
   readonly lossRate$: Observable<number | null>;
   readonly predictionResult$: Observable<Command | null>;
 
@@ -43,19 +49,22 @@ export class Classifier {
     ys: null
   };
 
-  private exampleCounts: BehaviorSubject<number[]>;
-  private modelStatus: BehaviorSubject<ModelStatus>;
-  private lossRate: BehaviorSubject<number | null>;
-  private predictionResult: BehaviorSubject<Command | null>;
+  private readonly exampleCounts: BehaviorSubject<number[]>;
+  private readonly modelStatus: BehaviorSubject<ModelStatus>;
+  private readonly controlStatus: BehaviorSubject<ControlStatus>;
+  private readonly lossRate: BehaviorSubject<number | null>;
+  private readonly predictionResult: BehaviorSubject<Command | null>;
 
   constructor(private cameraSide = CameraSide.Left) {
     this.exampleCounts = new BehaviorSubject([0, 0, 0]);
     this.modelStatus = new BehaviorSubject(ModelStatus.Preparing);
+    this.controlStatus = new BehaviorSubject(ControlStatus.Stopped);
     this.lossRate = new BehaviorSubject<number | null>(null);
     this.predictionResult = new BehaviorSubject<Command | null>(null);
 
     this.exampleCounts$ = this.exampleCounts.asObservable();
     this.modelStatus$ = this.modelStatus.pipe(distinctUntilChanged());
+    this.controlStatus$ = this.controlStatus.pipe(distinctUntilChanged());
     this.lossRate$ = this.lossRate.asObservable();
     this.predictionResult$ = this.predictionResult.pipe(distinctUntilChanged());
   }
@@ -84,8 +93,15 @@ export class Classifier {
     this.exampleCounts.next(counts);
   };
 
-  initialize() {
+  setReady() {
     this.modelStatus.next(ModelStatus.Ready);
+  }
+
+  setControlStatus(controlStatus: ControlStatus) {
+    this.controlStatus.next(controlStatus);
+  }
+
+  clearPrediction() {
     this.predictionResult.next(null);
   }
 
@@ -150,8 +166,6 @@ export class Classifier {
   };
 
   async predict(video: HTMLVideoElement, mobilenet: tf.Model) {
-    this.modelStatus.next(ModelStatus.Predict);
-
     const predicted = tf.tidy(() => {
       if (this.model === null) {
         throw new Error('trained model is unavailable');
