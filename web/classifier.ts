@@ -31,8 +31,6 @@ const EPOCHS = 20;
 const HIDDEN_UNITS = 100;
 
 export class Classifier {
-  cameraSide: CameraSide;
-
   readonly exampleCounts$: Observable<number[]>;
   readonly modelStatus$: Observable<ModelStatus>;
   readonly lossRate$: Observable<number | null>;
@@ -50,9 +48,7 @@ export class Classifier {
   private lossRate: BehaviorSubject<number | null>;
   private predictionResult: BehaviorSubject<Command | null>;
 
-  constructor(cameraSide: CameraSide) {
-    this.cameraSide = cameraSide;
-
+  constructor(private cameraSide = CameraSide.Left) {
     this.exampleCounts = new BehaviorSubject([0, 0, 0]);
     this.modelStatus = new BehaviorSubject(ModelStatus.Preparing);
     this.lossRate = new BehaviorSubject<number | null>(null);
@@ -88,14 +84,7 @@ export class Classifier {
     this.exampleCounts.next(counts);
   };
 
-  resetAll() {
-    if (this.examples.xs) {
-      this.examples.xs.dispose();
-      this.examples.ys.dispose();
-      this.examples.xs = null;
-      this.examples.ys = null;
-    }
-    this.exampleCounts.next([0, 0, 0]);
+  initialize() {
     this.modelStatus.next(ModelStatus.Ready);
     this.predictionResult.next(null);
   }
@@ -149,6 +138,11 @@ export class Classifier {
           await tf.nextFrame();
         },
         onTrainEnd: async _logs => {
+          this.examples.xs.dispose();
+          this.examples.ys.dispose();
+          this.examples.xs = null;
+          this.examples.ys = null;
+          this.exampleCounts.next([0, 0, 0]);
           this.modelStatus.next(ModelStatus.Trained);
         }
       }
@@ -176,5 +170,13 @@ export class Classifier {
     await tf.nextFrame();
 
     return classid;
+  }
+
+  hasModel(): boolean {
+    return !!this.model;
+  }
+
+  setCameraSide(cameraSide: CameraSide): void {
+    this.cameraSide = cameraSide;
   }
 }

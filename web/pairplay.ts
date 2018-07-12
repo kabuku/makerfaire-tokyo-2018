@@ -1,6 +1,14 @@
 import * as tf from '@tensorflow/tfjs';
 import { combineLatest, fromEvent, merge, interval, from, of } from 'rxjs';
-import { map, mapTo, switchMap, takeUntil, flatMap } from 'rxjs/operators';
+import {
+  map,
+  mapTo,
+  switchMap,
+  takeUntil,
+  flatMap,
+  debounceTime,
+  distinctUntilChanged
+} from 'rxjs/operators';
 
 import { RobotController } from './robot';
 import { CameraSide, setupCamera, capture } from './camera';
@@ -208,10 +216,10 @@ const setupUI = async () => {
     .subscribe();
 
   stopClick$.subscribe(() => {
-    classifierLeft.resetAll();
-    classifierRight.resetAll();
     robotControllerLeft.setVelocity(0);
     robotControllerRight.setVelocity(0);
+    classifierLeft.initialize();
+    classifierRight.initialize();
   });
 };
 
@@ -227,21 +235,31 @@ const setupUI = async () => {
   classifierLeft = new Classifier(CameraSide.Left);
   classifierRight = new Classifier(CameraSide.Right);
 
-  classifierLeft.predictionResult$.subscribe(label => {
-    if (label !== null) {
-      const velocity = label - 1; // label to velocity
-      robotControllerLeft.setVelocity(velocity);
-    }
-  });
-  classifierRight.predictionResult$.subscribe(label => {
-    if (label !== null) {
-      const velocity = label - 1; // label to velocity
-      robotControllerRight.setVelocity(velocity);
-    }
-  });
+  classifierLeft.predictionResult$
+    .pipe(
+      debounceTime(150),
+      distinctUntilChanged()
+    )
+    .subscribe(label => {
+      if (label !== null) {
+        const velocity = label - 1; // label to velocity
+        robotControllerLeft.setVelocity(velocity);
+      }
+    });
+  classifierRight.predictionResult$
+    .pipe(
+      debounceTime(150),
+      distinctUntilChanged()
+    )
+    .subscribe(label => {
+      if (label !== null) {
+        const velocity = label - 1; // label to velocity
+        robotControllerRight.setVelocity(velocity);
+      }
+    });
 
   await setupUI();
 
-  classifierLeft.resetAll();
-  classifierRight.resetAll();
+  classifierLeft.initialize();
+  classifierRight.initialize();
 })().catch(err => console.error(err));
