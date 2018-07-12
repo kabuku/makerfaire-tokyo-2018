@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Pair play - Kabuku @Maker Faire Tokyo 2018</title>
+</head>
+
+<body>
+
+  <div id="root">
+
+    <h1>ガンメンタイセン</h1>
+
+    <select id="camera-selector"></select>
+
+    <main>
+
+      <div class="webcam-box left">
+        <video autoplay playsinline muted width="448" height="224"></video>
+      </div>
+
+      <div class="webcam-box right">
+        <video autoplay playsinline muted width="448" height="224"></video>
+      </div>
+
+      <div class="command-controls left">
+        <div class="command-control forward">
+          <button>↑</button>
+          <div class="count">0</div>
+        </div>
+        <div class="command-control neutral">
+          <button>□</button>
+          <div class="count">0</div>
+        </div>
+        <div class="command-control backward">
+          <button>↓</button>
+          <div class="count">0</div>
+        </div>
+      </div>
+
+      <div class="command-controls right">
+        <div class="command-control forward">
+          <button>↑</button>
+          <div class="count">0</div>
+        </div>
+        <div class="command-control neutral">
+          <button>□</button>
+          <div class="count">0</div>
+        </div>
+        <div class="command-control backward">
+          <button>↓</button>
+          <div class="count">0</div>
+        </div>
+      </div>
+
+      <div class="log-message left">Loading...</div>
+      <div class="log-message right">Loading...</div>
+
+      <div class="model-controls">
+        <button class="train-left">◀ Train</button>
+        <button class="train-right">Train ▶︎</button>
+        <button class="start-predict">Start</button>
+        <button class="stop-predict">Stop</button>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="./pairplay.ts"></script>
+</body>
+
+</html>
