@@ -105,3 +105,7 @@ main {
   font-size: 1.2rem;
   padding: 0.5rem 1rem;
 }
+
+.model-controls .start-predict, .model-controls .stop-predict {
+  grid-column: 1 / 3;
+}

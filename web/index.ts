@@ -22,7 +22,7 @@ import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
 import { CameraSide, setupCamera, capture } from './camera';
-import { commandCount, Command, ModelStatus } from './classifier';
+import { Command, ModelStatus, Classifier, ControlStatus } from './classifier';
 import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
@@ -30,133 +30,13 @@ import './oneside.css';
 
 let topic$: Observable<string>;
 let robotController: RobotController;
-let model: tf.Model;
 let mobilenet: tf.Model;
 let webcamera: HTMLVideoElement;
-const examples: { xs: any | null; ys: any | null } = {
-  xs: null,
-  ys: null
-};
 
-const LEARNING_RATE = 0.0001;
-const BATCH_SIZE_FRACTION = 0.4;
-const EPOCHS = 20;
-const HIDDEN_UNITS = 100;
-
-const activeCameraSideSubject = new BehaviorSubject<CameraSide | null>(null);
-
-// to count the number of example. [backward, neutral, forword]
-const exampleCountsSubject = new BehaviorSubject<number[]>([0, 0, 0]);
-
-const modelStatusSubject = new BehaviorSubject<ModelStatus>(
-  ModelStatus.Preparing
+const activeCameraSideSubject = new BehaviorSubject<CameraSide>(
+  CameraSide.Left
 );
-
-const predictionResultSubject = new BehaviorSubject<Command | null>(null);
-
-const lossSubject = new BehaviorSubject<number | null>(null);
-
-const resetAll = () => {
-  if (examples.xs) {
-    examples.xs.dispose();
-    examples.ys.dispose();
-    examples.xs = null;
-    examples.ys = null;
-  }
-  exampleCountsSubject.next([0, 0, 0]);
-  modelStatusSubject.next(ModelStatus.Ready);
-  predictionResultSubject.next(null);
-};
-
-const addExample = (label: Command, example: any) => {
-  const y = tf.tidy(() => {
-    return tf.oneHot(tf.tensor1d([label]).toInt(), commandCount);
-  });
-  if (examples.xs === null) {
-    examples.xs = tf.keep(example);
-    examples.ys = tf.keep(y);
-  } else {
-    const oldX = examples.xs;
-    const oldY = examples.ys;
-
-    examples.xs = tf.keep(oldX.concat(example));
-    examples.ys = tf.keep(oldY.concat(y));
-
-    oldX.dispose();
-    oldY.dispose();
-    y.dispose();
-  }
-};
-
-const startTraining = async () => {
-  if (examples.xs === null) {
-    throw new Error('Add some examples before training!');
-  }
-
-  model = tf.sequential({
-    layers: [
-      tf.layers.flatten({ inputShape: [7, 7, 256] }),
-
-      tf.layers.dense({
-        units: HIDDEN_UNITS,
-        activation: 'relu',
-        kernelInitializer: 'varianceScaling',
-        useBias: true
-      }),
-
-      tf.layers.dense({
-        units: commandCount,
-        kernelInitializer: 'varianceScaling',
-        useBias: false,
-        activation: 'softmax'
-      })
-    ]
-  });
-
-  const optimizer = tf.train.adam(LEARNING_RATE);
-
-  model.compile({ optimizer, loss: 'categoricalCrossentropy' });
-
-  const batchSize = Math.floor(examples.xs.shape[0] * BATCH_SIZE_FRACTION);
-  if (batchSize <= 0) {
-    throw new Error('Batch size is 0 or NaN.');
-  }
-
-  await model.fit(examples.xs, examples.ys, {
-    batchSize,
-    epochs: EPOCHS,
-    callbacks: {
-      onBatchEnd: async (_batch, logs?) => {
-        if (logs) {
-          lossSubject.next(logs.loss);
-        }
-        await tf.nextFrame();
-      },
-      onTrainEnd: async _logs => {
-        modelStatusSubject.next(ModelStatus.Trained);
-      }
-    }
-  });
-};
-
-const predict = async () => {
-  const activeSide = activeCameraSideSubject.value;
-
-  if (activeSide === null) {
-    throw new Error('no active image side for prediction');
-  }
-
-  const predicted = tf.tidy(() => {
-    const img = capture(webcamera, activeSide);
-    const activation = mobilenet.predict(img);
-    const predictions = model.predict(activation) as tf.Tensor;
-    return predictions.as1D().argMax();
-  });
-
-  const classid = (await predicted.data())[0];
-  predicted.dispose();
-  return classid;
-};
+let classifier: Classifier;
 
 const setupUI = async () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
@@ -200,46 +80,36 @@ const setupUI = async () => {
     .pipe(
       map(label => {
         const activeSide = activeCameraSideSubject.value;
-        if (activeSide === null) {
-          throw new Error('no active image side for training');
-        }
         const image = capture(webcamera, activeSide);
         const example = mobilenet.predict(image);
         return { label, example };
       })
     )
     .subscribe(({ label, example }) => {
-      addExample(label, example);
-
-      const counts = exampleCountsSubject.value;
-      counts[label] = counts[label] + 1;
-      exampleCountsSubject.next(counts);
+      classifier.addExample(label, example);
     });
 
-  exampleCountsSubject.subscribe(([bw, ne, fw]) => {
+  classifier.exampleCounts$.subscribe(([bw, ne, fw]) => {
     backwardCount.textContent = `${bw}`;
     neutralCount.textContent = `${ne}`;
     forwardCount.textContent = `${fw}`;
   });
 
   const trainClick$ = fromEvent(trainButton, 'click');
-  trainClick$.pipe(mapTo(ModelStatus.Training)).subscribe(modelStatusSubject);
-  trainClick$.subscribe(_ => startTraining());
+  trainClick$.subscribe(_ => classifier.startTraining());
 
   const startClick$ = fromEvent(startPredictButton, 'click');
   const stopClick$ = fromEvent(stopPredictButton, 'click');
 
   startClick$
     .pipe(
+      map(_ => classifier.setControlStatus(ControlStatus.Started)),
       switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
-      flatMap(_ => from(predict())),
-      distinctUntilChanged()
+      flatMap(_ => from(classifier.predict(webcamera, mobilenet)))
     )
-    .subscribe(predictionResultSubject);
+    .subscribe();
 
-  startClick$.pipe(mapTo(ModelStatus.Predict)).subscribe(modelStatusSubject);
-
-  predictionResultSubject.subscribe(result => {
+  classifier.predictionResult$.subscribe(result => {
     addExampleButtons.forEach(b => b.removeAttribute('predicted'));
     if (result !== null) {
       const button = addExampleButtons[result];
@@ -247,7 +117,7 @@ const setupUI = async () => {
     }
   });
 
-  predictionResultSubject
+  classifier.predictionResult$
     .pipe(
       debounceTime(150),
       distinctUntilChanged()
@@ -260,8 +130,7 @@ const setupUI = async () => {
     });
 
   activeCameraSideSubject.subscribe(side => {
-    resetAll();
-
+    classifier.setCameraSide(side);
     webcamBox.classList.remove('left');
     webcamBox.classList.remove('right');
 
@@ -277,7 +146,8 @@ const setupUI = async () => {
 
   stopClick$.subscribe(_ => {
     robotController.setVelocity(0);
-    resetAll();
+    classifier.clearPrediction();
+    classifier.setControlStatus(ControlStatus.Stopped);
   });
 
   fromEvent(window, 'hashchange')
@@ -286,17 +156,11 @@ const setupUI = async () => {
       startWith(window.location.hash)
     )
     .subscribe(hash => {
-      if (!hash) {
-        activeCameraSideSubject.next(null);
-      } else {
+      if (hash) {
         const [, side] = hash.slice(1).split('/');
-        if (side === 'right') {
-          activeCameraSideSubject.next(CameraSide.Right);
-        } else if (side === 'left') {
-          activeCameraSideSubject.next(CameraSide.Left);
-        } else {
-          activeCameraSideSubject.next(null);
-        }
+        activeCameraSideSubject.next(
+          side === 'right' ? CameraSide.Right : CameraSide.Left
+        );
       }
     });
 
@@ -310,34 +174,32 @@ const setupUI = async () => {
     }
   };
 
-  modelStatusSubject.subscribe(status => {
-    switch (status) {
-      case ModelStatus.Preparing:
-        addExampleButtons.forEach(b => setEnable(b, false));
-        break;
-      case ModelStatus.Ready:
-        addExampleButtons.forEach(b => setEnable(b, true));
-        setEnable(trainButton, true);
-        setEnable(startPredictButton, false);
-        setEnable(stopPredictButton, false);
-        break;
-      case ModelStatus.Training:
-        setEnable(trainButton, false);
-        break;
-      case ModelStatus.Trained:
-        setEnable(startPredictButton, true);
-        break;
-      case ModelStatus.Predict:
-        setEnable(startPredictButton, false);
-        setEnable(stopPredictButton, true);
-        break;
+  combineLatest(classifier.modelStatus$, classifier.controlStatus$).subscribe(
+    ([modelStatus, controlStatus]) => {
+      const trainable =
+        modelStatus !== ModelStatus.Preparing &&
+        modelStatus !== ModelStatus.Training;
+      addExampleButtons.forEach(b => setEnable(b, trainable));
+      setEnable(
+        trainButton,
+        trainable && controlStatus === ControlStatus.Stopped
+      );
+      setEnable(startPredictButton, modelStatus === ModelStatus.Trained);
+      startPredictButton.classList.toggle(
+        'hidden',
+        controlStatus === ControlStatus.Started
+      );
+      stopPredictButton.classList.toggle(
+        'hidden',
+        controlStatus === ControlStatus.Stopped
+      );
     }
-  });
+  );
 
   // Setup log message
   combineLatest(
-    modelStatusSubject.pipe(distinctUntilChanged()),
-    lossSubject
+    classifier.modelStatus$.pipe(distinctUntilChanged()),
+    classifier.lossRate$
   ).subscribe(([status, loss]) => {
     let message = '';
     switch (status) {
@@ -352,11 +214,6 @@ const setupUI = async () => {
       case ModelStatus.Trained:
         if (loss) {
           message = `Done: Loss = ${loss.toFixed(5)}`;
-        }
-        break;
-      case ModelStatus.Predict:
-        if (loss) {
-          message = `Running: Loss = ${loss.toFixed(5)}`;
         }
         break;
     }
@@ -391,5 +248,7 @@ window.onload = () => {
     loadMobilenet(),
     handleKeyEvent(topic$)
   ]);
+  classifier = new Classifier();
   await setupUI();
+  classifier.setReady();
 })().catch(err => console.error(err));
