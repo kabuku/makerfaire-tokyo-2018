@@ -92,6 +92,13 @@ select {
   display: none !important;
 }
 
+.webcam-box {
+  --box-border-color: rgb(32, 202, 117);
+  background-color: rgb(32, 202, 117, 0.2);
+  border: 4px solid var(--box-border-color);
+  box-shadow: 0 0 40px var(--box-border-color);
+}
+
 .log-message {
   color: white;
   background: rgba(0, 0, 0, 0.6);

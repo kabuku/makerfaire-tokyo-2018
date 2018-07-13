@@ -49,14 +49,10 @@ main {
 }
 
 .webcam-box {
-  --box-border-color: rgb(32, 202, 117);
   grid-area: webcamera;
   position: relative;
   width: var(--capture-size);
   height: var(--capture-size);
-  background-color: rgb(32, 202, 117, 0.2);
-  border: 4px solid var(--box-border-color);
-  box-shadow: 0 0 40px var(--box-border-color);
   overflow: hidden;
 }
 
