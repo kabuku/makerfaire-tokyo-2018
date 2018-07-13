@@ -111,5 +111,20 @@ main {
 }
 
 .robot-name {
-  font-size: 1rem;
+  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
+  font-size: 1.2rem;
+  margin: 24px 0;
+  padding: 0.5rem 0.5rem;
+  width: 216px;
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--main-color);
+  border-color: var(--main-color);
+  border-width: 2px;
+  border-style: solid;
+  caret-color: var(--main-color);
+}
+
+.robot-name:focus {
+  background: rgba(83, 255, 226, 0.2);
+  border-color: white;
 }

@@ -61,7 +61,9 @@ button:active {
         inset 0 0 40px rgba(255, 255, 255, .2);
 }
 
-button:focus, select:focus {
+input:focus,
+button:focus,
+select:focus {
   outline:0;
 }
 
