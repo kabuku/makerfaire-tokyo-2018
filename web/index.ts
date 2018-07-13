@@ -219,6 +219,14 @@ const setupUI = async () => {
     }
     logMessage.textContent = message;
   });
+
+  classifier.controlStatus$.subscribe(status => {
+    if (status === ControlStatus.Started) {
+      webcamBox.classList.add('blink');
+    } else {
+      webcamBox.classList.remove('blink');
+    }
+  });
 };
 
 window.onload = () => {

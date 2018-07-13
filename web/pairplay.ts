@@ -249,6 +249,25 @@ const setupUI = async () => {
     classifierRight.setControlStatus(ControlStatus.Stopped);
   });
 
+  const webcamBoxLeft = document.querySelector('.webcam-box.left')!;
+  const webcamBoxRight = document.querySelector('.webcam-box.right')!;
+
+  classifierLeft.controlStatus$.subscribe(status => {
+    if (status === ControlStatus.Started) {
+      webcamBoxLeft.classList.add('blink');
+    } else {
+      webcamBoxLeft.classList.remove('blink');
+    }
+  });
+
+  classifierRight.controlStatus$.subscribe(status => {
+    if (status === ControlStatus.Started) {
+      webcamBoxRight.classList.add('blink');
+    } else {
+      webcamBoxRight.classList.remove('blink');
+    }
+  });
+
   const robotNameInput = document.querySelector(
     '.robot-name'
   ) as HTMLInputElement;
