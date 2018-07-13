@@ -1,8 +1,8 @@
 main {
   display: grid;
   grid-template-rows: 80px 280px 80px 100px;
-  grid-template-columns: 100px 280px 100px;
-  grid-template-areas: ". target-selector ." ". webcamera command-controls" ". message ." ". model-controls .";
+  grid-template-columns: 1fr 100px 280px 100px 1fr;
+  grid-template-areas: ". . target-selector . ." ". . webcamera command-controls performance" ". . message . ." ". . model-controls . .";
   justify-content: center;
   justify-items: center;
   align-items: center;
@@ -105,6 +105,20 @@ main {
   color: white;
   padding: 2px;
   z-index: -1;
+}
+
+.performance-panel {
+  grid-area: performance;
+  display: flex;
+  flex-direction: column;
+  background: #f8f8f833;
+}
+
+.performance-panel ul {
+  list-style: none;
+}
+
+.performance-panel li {
 }
 
 .model-controls {

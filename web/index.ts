@@ -16,7 +16,8 @@ import {
   map,
   startWith,
   distinctUntilChanged,
-  debounceTime
+  debounceTime,
+  filter
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -60,6 +61,10 @@ const setupUI = async () => {
   const neutralCount = document.querySelector('.neutral .count')!;
   const forwardCount = document.querySelector('.forward .count')!;
   const backwardCount = document.querySelector('.backward .count')!;
+
+  const neutralScore = document.querySelector('.scores .neutral')!;
+  const forwardScore = document.querySelector('.scores .forward')!;
+  const backwardScore = document.querySelector('.scores .backward')!;
 
   const trainButton = document.querySelector('.train')!;
   const startPredictButton = document.querySelector('.start-predict')!;
@@ -127,6 +132,15 @@ const setupUI = async () => {
         const velocity = label - 1; // label to velocity
         robotController.setVelocity(velocity);
       }
+    });
+
+  classifier.predictionScores$
+    .pipe(filter(Boolean))
+    .subscribe((scores: number[]) => {
+      const [backward, neutral, forward] = scores.map(n => n.toFixed(3));
+      backwardScore.textContent = backward;
+      neutralScore.textContent = neutral;
+      forwardScore.textContent = forward;
     });
 
   activeCameraSideSubject.subscribe(side => {
