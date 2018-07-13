@@ -5,8 +5,8 @@ import {
   merge,
   interval,
   from,
-  of,
-  Observable
+  Observable,
+  BehaviorSubject
 } from 'rxjs';
 import {
   map,
@@ -15,7 +15,8 @@ import {
   takeUntil,
   flatMap,
   debounceTime,
-  distinctUntilChanged
+  distinctUntilChanged,
+  tap
 } from 'rxjs/operators';
 
 import { RobotController } from './robot';
@@ -27,6 +28,7 @@ import './styles.css';
 import './pairplay.css';
 
 let mobilenet: tf.Model;
+let robotName: BehaviorSubject<string>;
 let robotControllerLeft: RobotController;
 let robotControllerRight: RobotController;
 let classifierLeft: Classifier;
@@ -246,15 +248,31 @@ const setupUI = async () => {
     classifierLeft.setControlStatus(ControlStatus.Stopped);
     classifierRight.setControlStatus(ControlStatus.Stopped);
   });
+
+  const robotNameInput = document.querySelector(
+    '.robot-name'
+  ) as HTMLInputElement;
+
+  robotNameInput.value = robotName.value;
+
+  fromEvent<Event>(robotNameInput, 'change')
+    .pipe(
+      tap(_ => robotNameInput.blur()),
+      map(_ => robotNameInput.value)
+    )
+    .subscribe(robotName);
 };
 
 (async () => {
-  const robotName = 'nobunaga';
+  robotName = new BehaviorSubject('nobunaga');
+
+  const leftTopic$ = robotName.pipe(map(name => `${name}/left`));
+  const rightTopic$ = robotName.pipe(map(name => `${name}/right`));
 
   [mobilenet, robotControllerLeft, robotControllerRight] = await Promise.all([
     loadMobilenet(),
-    RobotController.createInstance(of(`${robotName}/left`)),
-    RobotController.createInstance(of(`${robotName}/right`))
+    RobotController.createInstance(leftTopic$),
+    RobotController.createInstance(rightTopic$)
   ]);
 
   classifierLeft = new Classifier(CameraSide.Left);
