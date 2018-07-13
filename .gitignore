@@ -21,9 +21,10 @@ node_modules/
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 
-dist
+dist/*
 
 *.js
+!scripts/**/*.js
 
 robot/esp8266_client/setting.h
 
@@ -32,3 +33,5 @@ robot/esp8266_client/setting.h
 # keys
 *.crt
 *.pem
+
+!.gitkeep

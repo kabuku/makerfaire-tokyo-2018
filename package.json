@@ -6,6 +6,7 @@
     "npm": ">=5.7.0"
   },
   "scripts": {
+    "load-model": "node scripts/loadMobilenet",
     "web": "parcel --https web/index.html web/pairplay.html",
     "mqtt": "npm run copy-key && docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
     "copy-key": "cp .cache/primary.crt mqtt/mosquitto/cert/primary.crt && cp .cache/private.pem mqtt/mosquitto/cert/private.pem",
@@ -16,6 +17,7 @@
   "dependencies": {
     "@tensorflow/tfjs": "^0.11.6",
     "mqtt": "^2.18.1",
+    "node-fetch": "^2.1.2",
     "rxjs": "^6.2.1",
     "tslib": "^1.9.2"
   },
