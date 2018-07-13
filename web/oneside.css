@@ -1,8 +1,8 @@
 main {
   display: grid;
-  grid-template-rows: 80px 280px 120px 80px;
+  grid-template-rows: 80px 280px 80px 100px;
   grid-template-columns: 100px 280px 100px;
-  grid-template-areas: ". target-selector ." ". webcamera command-controls" ". model-controls ." ". message .";
+  grid-template-areas: ". target-selector ." ". webcamera command-controls" ". message ." ". model-controls .";
   justify-content: center;
   justify-items: center;
   align-items: center;
@@ -122,10 +122,4 @@ main {
 
 .log-message {
   grid-area: message;
-  color: white;
-  background: rgba(0, 0, 0, 0.6);
-  min-width: 200px;
-  text-align: center;
-  padding: 8px;
-  height: 1rem;
 }

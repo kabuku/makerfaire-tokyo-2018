@@ -1,18 +1,16 @@
 import { connect, MqttClient } from 'mqtt';
-import { combineLatest, Observable, Subject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, Subject } from 'rxjs';
+import { withLatestFrom } from 'rxjs/operators';
 
 export class RobotController {
   private velocity$ = new Subject<number>();
 
   private constructor(client: MqttClient, topic$: Observable<string>) {
-    combineLatest(topic$, this.velocity$)
-      .pipe(
-        map(([topic, velocity]) =>
-          client.publish(topic, velocity.toString(), { qos: 1 })
-        )
-      )
-      .subscribe();
+    this.velocity$
+      .pipe(withLatestFrom(topic$))
+      .subscribe(([velocity, topic]) =>
+        client.publish(topic, velocity.toString(), { qos: 1 })
+      );
   }
 
   static createInstance(topic$: Observable<string>): Promise<RobotController> {
