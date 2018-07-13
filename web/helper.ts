@@ -2,8 +2,7 @@ import * as tf from '@tensorflow/tfjs';
 import { fromEvent, interval } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
 
-const MODEL_URL =
-  'https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json';
+const MODEL_URL = '/model.json';
 
 export const loadMobilenet = async (): Promise<tf.Model> => {
   const mn = await tf.loadModel(MODEL_URL);

@@ -12,6 +12,9 @@
 
 ```sh
 $ npm ci
+
+# load Mobilenet model
+$ npm run load-model
 ```
 
 ## Run
