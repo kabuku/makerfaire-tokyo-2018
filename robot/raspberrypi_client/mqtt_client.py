@@ -87,8 +87,8 @@ class MQTTClient(object):
         self.led_connect.output(True)
         # Subscribing in on_connect() means that if we lose the connection and
         # reconnect then subscriptions will be renewed.
-        client.subscribe("{}/right".format(self.robot_name))
-        client.subscribe("{}/left".format(self.robot_name))
+        client.subscribe("{}/right".format(self.robot_name), qos=1)
+        client.subscribe("{}/left".format(self.robot_name), qos=1)
 
     # The callback for when a PUBLISH message is received from the server.
     def on_message(self, client, userdata, msg):
