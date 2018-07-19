@@ -16,7 +16,11 @@ import {
   map,
   startWith,
   distinctUntilChanged,
-  debounceTime
+  debounceTime,
+  filter,
+  scan,
+  throttleTime,
+  tap
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -36,6 +40,7 @@ let webcamera: HTMLVideoElement;
 const activeCameraSideSubject = new BehaviorSubject<CameraSide>(
   CameraSide.Left
 );
+const devModeSubject = new BehaviorSubject<Boolean>(false);
 let classifier: Classifier;
 
 const setupUI = async () => {
@@ -60,6 +65,11 @@ const setupUI = async () => {
   const neutralCount = document.querySelector('.neutral .count')!;
   const forwardCount = document.querySelector('.forward .count')!;
   const backwardCount = document.querySelector('.backward .count')!;
+
+  const performancePanel = document.querySelector('.performance-panel')!;
+  const neutralScore = document.querySelector('.scores .neutral')!;
+  const forwardScore = document.querySelector('.scores .forward')!;
+  const backwardScore = document.querySelector('.scores .backward')!;
 
   const trainButton = document.querySelector('.train')!;
   const startPredictButton = document.querySelector('.start-predict')!;
@@ -109,6 +119,12 @@ const setupUI = async () => {
     )
     .subscribe();
 
+  devModeSubject.subscribe(isDev => {
+    (performancePanel as HTMLElement).style.visibility = isDev
+      ? 'visible'
+      : 'hidden';
+  });
+
   classifier.predictionResult$.subscribe(result => {
     addExampleButtons.forEach(b => b.removeAttribute('predicted'));
     if (result !== null) {
@@ -127,6 +143,25 @@ const setupUI = async () => {
         const velocity = label - 1; // label to velocity
         robotController.setVelocity(velocity);
       }
+    });
+
+  classifier.predictionScores$
+    .pipe(
+      tap(scores => {
+        if (scores === null) {
+          backwardScore.textContent = '0.000';
+          neutralScore.textContent = '0.000';
+          forwardScore.textContent = '0.000';
+        }
+      }),
+      filter(Boolean),
+      throttleTime(100)
+    )
+    .subscribe((scores: number[]) => {
+      const [backward, neutral, forward] = scores.map(n => n.toFixed(3));
+      backwardScore.textContent = backward;
+      neutralScore.textContent = neutral;
+      forwardScore.textContent = forward;
     });
 
   activeCameraSideSubject.subscribe(side => {
@@ -227,6 +262,16 @@ const setupUI = async () => {
       webcamBox.classList.remove('blink');
     }
   });
+
+  const keydown$ = fromEvent<KeyboardEvent>(window, 'keydown');
+
+  keydown$
+    .pipe(
+      filter(ev => ev.key === 'd'),
+      startWith(false),
+      scan((acc, _) => !acc)
+    )
+    .subscribe(isDev => devModeSubject.next(isDev as Boolean));
 };
 
 window.onload = () => {

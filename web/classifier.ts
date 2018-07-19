@@ -1,6 +1,6 @@
 import * as tf from '@tensorflow/tfjs';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { distinctUntilChanged } from 'rxjs/operators';
+import { Observable, BehaviorSubject, of } from 'rxjs';
+import { distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 import { CameraSide, capture } from './camera';
 
@@ -41,6 +41,7 @@ export class Classifier {
   readonly controlStatus$: Observable<ControlStatus>;
   readonly lossRate$: Observable<number | null>;
   readonly predictionResult$: Observable<Command | null>;
+  readonly predictionScores$: Observable<number[] | null>;
 
   private model: tf.Model | null = null;
 
@@ -53,20 +54,33 @@ export class Classifier {
   private readonly modelStatus: BehaviorSubject<ModelStatus>;
   private readonly controlStatus: BehaviorSubject<ControlStatus>;
   private readonly lossRate: BehaviorSubject<number | null>;
-  private readonly predictionResult: BehaviorSubject<Command | null>;
+  private readonly predictionScores: BehaviorSubject<number[] | null>;
 
   constructor(private cameraSide = CameraSide.Left) {
     this.exampleCounts = new BehaviorSubject([0, 0, 0]);
     this.modelStatus = new BehaviorSubject(ModelStatus.Preparing);
     this.controlStatus = new BehaviorSubject(ControlStatus.Stopped);
     this.lossRate = new BehaviorSubject<number | null>(null);
-    this.predictionResult = new BehaviorSubject<Command | null>(null);
+
+    this.predictionScores = new BehaviorSubject<number[] | null>(null);
 
     this.exampleCounts$ = this.exampleCounts.asObservable();
     this.modelStatus$ = this.modelStatus.pipe(distinctUntilChanged());
     this.controlStatus$ = this.controlStatus.pipe(distinctUntilChanged());
     this.lossRate$ = this.lossRate.asObservable();
-    this.predictionResult$ = this.predictionResult.pipe(distinctUntilChanged());
+    this.predictionScores$ = this.predictionScores.asObservable();
+
+    this.predictionResult$ = this.predictionScores$.pipe(
+      switchMap(scores => {
+        if (scores === null) {
+          return of(null);
+        } else {
+          const classid = scores.indexOf(Math.max(...scores));
+          return of(classid);
+        }
+      }),
+      distinctUntilChanged()
+    );
   }
 
   addExample = (label: Command, example: any) => {
@@ -102,7 +116,7 @@ export class Classifier {
   }
 
   clearPrediction() {
-    this.predictionResult.next(null);
+    this.predictionScores.next(null);
   }
 
   startTraining = async () => {
@@ -173,17 +187,19 @@ export class Classifier {
       const img = capture(video, this.cameraSide);
       const activation = mobilenet.predict(img);
       const predictions = this.model.predict(activation) as tf.Tensor;
-      return predictions.as1D().argMax();
+      return predictions.as1D();
     });
 
-    const classid = (await predicted.data())[0];
+    const typedScores = await predicted.data();
+    const scores = Array.from(typedScores);
+
     predicted.dispose();
 
-    this.predictionResult.next(classid);
+    this.predictionScores.next(scores);
 
     await tf.nextFrame();
 
-    return classid;
+    return scores;
   }
 
   hasModel(): boolean {
