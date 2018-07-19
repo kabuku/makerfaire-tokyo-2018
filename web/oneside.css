@@ -1,8 +1,8 @@
 main {
   display: grid;
   grid-template-rows: 80px 280px 80px 100px;
-  grid-template-columns: 100px 280px 100px;
-  grid-template-areas: ". target-selector ." ". webcamera command-controls" ". message ." ". model-controls .";
+  grid-template-columns: 1fr 100px 280px 100px 1fr;
+  grid-template-areas: ". . target-selector . ." ". . webcamera command-controls performance" ". . message . ." ". . model-controls . .";
   justify-content: center;
   justify-items: center;
   align-items: center;
