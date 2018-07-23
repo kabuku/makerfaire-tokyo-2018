@@ -4,7 +4,6 @@ import {
   fromEvent,
   merge,
   interval,
-  from,
   Observable,
   BehaviorSubject
 } from 'rxjs';
@@ -13,10 +12,10 @@ import {
   mapTo,
   switchMap,
   takeUntil,
-  flatMap,
   debounceTime,
   distinctUntilChanged,
-  tap
+  tap,
+  shareReplay
 } from 'rxjs/operators';
 
 import { RobotController } from './robot';
@@ -224,21 +223,24 @@ const setupUI = async () => {
   setupLogMessage(CameraSide.Left);
   setupLogMessage(CameraSide.Right);
 
-  startClick$
-    .pipe(
-      map(_ => {
-        classifierLeft.setControlStatus(ControlStatus.Started);
-        classifierRight.setControlStatus(ControlStatus.Started);
-      }),
-      switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
-      flatMap(_ =>
-        merge(
-          from(classifierLeft.predict(videoLeft, mobilenet)),
-          from(classifierRight.predict(videoRight, mobilenet))
-        )
-      )
-    )
-    .subscribe();
+  const predictionInterval$ = startClick$.pipe(
+    tap(_ => {
+      classifierLeft.setControlStatus(ControlStatus.Started);
+      classifierRight.setControlStatus(ControlStatus.Started);
+    }),
+    switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
+    shareReplay()
+  );
+
+  predictionInterval$.subscribe(async () => {
+    const imageLeft = capture(videoLeft, CameraSide.Left);
+    await classifierLeft.predict(imageLeft, mobilenet);
+  });
+
+  predictionInterval$.subscribe(async () => {
+    const imageRight = capture(videoRight, CameraSide.Right);
+    await classifierRight.predict(imageRight, mobilenet);
+  });
 
   stopClick$.subscribe(() => {
     robotControllerLeft.setVelocity(0);
@@ -294,8 +296,8 @@ const setupUI = async () => {
     RobotController.createInstance(rightTopic$)
   ]);
 
-  classifierLeft = new Classifier(CameraSide.Left);
-  classifierRight = new Classifier(CameraSide.Right);
+  classifierLeft = new Classifier();
+  classifierRight = new Classifier();
 
   classifierLeft.predictionResult$
     .pipe(
