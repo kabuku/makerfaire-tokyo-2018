@@ -17,12 +17,13 @@ import {
   startWith,
   distinctUntilChanged,
   debounceTime,
-  tap
+  tap,
+  filter
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
-import { CameraSide, setupCamera, capture } from './camera';
+import { CameraSide, setupCamera, capture, Rect } from './camera';
 import { Command, ModelStatus, Classifier, ControlStatus } from './classifier';
 import { createPressStream, loadMobilenet } from './helper';
 
@@ -37,7 +38,38 @@ let webcamera: HTMLVideoElement;
 const activeCameraSideSubject = new BehaviorSubject<CameraSide>(
   CameraSide.Left
 );
+const cropAreaSubject = new BehaviorSubject<Rect | null>(null);
 let classifier: Classifier;
+
+const getCropArea = (canvas: HTMLCanvasElement): Observable<Rect> => {
+  const mousedown$ = fromEvent<MouseEvent>(canvas, 'mousedown');
+  const mousemove$ = fromEvent<MouseEvent>(canvas, 'mousemove');
+  const mouseup$ = fromEvent<MouseEvent>(canvas, 'mouseup');
+
+  const getMousePoint = (ev: MouseEvent) => ({ x: ev.offsetX, y: ev.offsetY });
+
+  mousedown$.pipe(mapTo(null)).subscribe(cropAreaSubject);
+
+  return mousedown$.pipe(
+    switchMap(md =>
+      mousemove$.pipe(
+        filter(mm => mm.target === canvas),
+        map(mm => [md, mm]),
+        takeUntil(mouseup$)
+      )
+    ),
+    map(([mousedown, mousemove]) => {
+      const down = getMousePoint(mousedown);
+      const move = getMousePoint(mousemove);
+      const x = down.x;
+      const y = down.y;
+      const width = move.x - down.x;
+      const height = move.y - down.y;
+      const size = Math.max(width, height);
+      return { x, y, width: size, height: size };
+    })
+  );
+};
 
 const setupUI = async () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
@@ -50,6 +82,27 @@ const setupUI = async () => {
   // workaround
   const image = capture(webcamera, CameraSide.Left);
   mobilenet.predict(image);
+
+  const cropSelector = document.querySelector(
+    '.crop-selector'
+  )! as HTMLCanvasElement;
+
+  getCropArea(cropSelector).subscribe(cropAreaSubject);
+
+  const cropSelectorContext = cropSelector.getContext('2d')!;
+  cropAreaSubject.subscribe(rect => {
+    cropSelectorContext.clearRect(
+      0,
+      0,
+      cropSelector.clientWidth,
+      cropSelector.clientHeight
+    );
+    if (rect !== null) {
+      const { x, y, width, height } = rect;
+      cropSelectorContext.strokeStyle = 'rgb(234, 11, 141)';
+      cropSelectorContext.strokeRect(x, y, width, height);
+    }
+  });
 
   const webcamBox = document.querySelector('.webcam-box')!;
 
