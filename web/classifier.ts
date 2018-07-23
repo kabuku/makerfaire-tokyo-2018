@@ -2,8 +2,6 @@ import * as tf from '@tensorflow/tfjs';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { distinctUntilChanged } from 'rxjs/operators';
 
-import { CameraSide, capture } from './camera';
-
 export const enum Command {
   Backward = 0,
   Neutral = 1,
@@ -55,7 +53,7 @@ export class Classifier {
   private readonly lossRate: BehaviorSubject<number | null>;
   private readonly predictionResult: BehaviorSubject<Command | null>;
 
-  constructor(private cameraSide = CameraSide.Left) {
+  constructor() {
     this.exampleCounts = new BehaviorSubject([0, 0, 0]);
     this.modelStatus = new BehaviorSubject(ModelStatus.Preparing);
     this.controlStatus = new BehaviorSubject(ControlStatus.Stopped);
@@ -165,18 +163,19 @@ export class Classifier {
     });
   };
 
-  async predict(video: HTMLVideoElement, mobilenet: tf.Model) {
+  async predict(image: tf.Tensor, mobilenet: tf.Model) {
     const predicted = tf.tidy(() => {
       if (this.model === null) {
         throw new Error('trained model is unavailable');
       }
-      const img = capture(video, this.cameraSide);
-      const activation = mobilenet.predict(img);
+      const activation = mobilenet.predict(image);
       const predictions = this.model.predict(activation) as tf.Tensor;
       return predictions.as1D().argMax();
     });
 
     const classid = (await predicted.data())[0];
+
+    image.dispose();
     predicted.dispose();
 
     this.predictionResult.next(classid);
@@ -188,9 +187,5 @@ export class Classifier {
 
   hasModel(): boolean {
     return !!this.model;
-  }
-
-  setCameraSide(cameraSide: CameraSide): void {
-    this.cameraSide = cameraSide;
   }
 }

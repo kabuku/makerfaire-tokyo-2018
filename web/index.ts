@@ -16,7 +16,8 @@ import {
   map,
   startWith,
   distinctUntilChanged,
-  debounceTime
+  debounceTime,
+  tap
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -103,9 +104,13 @@ const setupUI = async () => {
 
   startClick$
     .pipe(
-      map(_ => classifier.setControlStatus(ControlStatus.Started)),
+      tap(_ => classifier.setControlStatus(ControlStatus.Started)),
       switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
-      flatMap(_ => from(classifier.predict(webcamera, mobilenet)))
+      flatMap(_ => {
+        const cameraSide = activeCameraSideSubject.value;
+        const image = capture(webcamera, cameraSide);
+        return from(classifier.predict(image, mobilenet));
+      })
     )
     .subscribe();
 
@@ -130,7 +135,6 @@ const setupUI = async () => {
     });
 
   activeCameraSideSubject.subscribe(side => {
-    classifier.setCameraSide(side);
     webcamBox.classList.remove('left');
     webcamBox.classList.remove('right');
 
