@@ -4,7 +4,6 @@ import {
   fromEvent,
   merge,
   interval,
-  Observable,
   BehaviorSubject
 } from 'rxjs';
 import {
@@ -15,16 +14,34 @@ import {
   debounceTime,
   distinctUntilChanged,
   tap,
-  shareReplay
+  shareReplay,
+  withLatestFrom
 } from 'rxjs/operators';
 
 import { RobotController } from './robot';
-import { CameraSide, setupCamera, capture } from './camera';
+import {
+  CameraSide,
+  setupCamera,
+  capture,
+  Rect,
+  captureWithCanvas
+} from './camera';
 import { Command, Classifier, ModelStatus, ControlStatus } from './classifier';
 import { loadMobilenet, createPressStream } from './helper';
 
 import './styles.css';
 import './pairplay.css';
+import { getCropArea } from './squareCrop';
+
+const imageSize = 224;
+const cropAreaLeftSubject = new BehaviorSubject<Rect | null>(null);
+const cropAreaRightSubject = new BehaviorSubject<Rect | null>(null);
+const fullArea = {
+  x: 0,
+  y: 0,
+  width: imageSize,
+  height: imageSize
+};
 
 let mobilenet: tf.Model;
 let robotName: BehaviorSubject<string>;
@@ -43,23 +60,45 @@ const setEnable = (elem: Element, enabled: boolean) => {
   }
 };
 
+const captureImageWithCanvas = (
+  cameraSide: CameraSide,
+  destImage: HTMLCanvasElement
+): tf.Tensor => {
+  let side: CameraSide;
+  let video: HTMLVideoElement;
+  let cropArea: Rect;
+
+  switch (cameraSide) {
+    case CameraSide.Left:
+      side = CameraSide.Left;
+      video = videoLeft;
+      cropArea = cropAreaLeftSubject.value || fullArea;
+      break;
+    case CameraSide.Right:
+      side = CameraSide.Right;
+      video = videoRight;
+      cropArea = cropAreaRightSubject.value || fullArea;
+      break;
+    default:
+      throw new Error('camera side is invalid.');
+  }
+  return captureWithCanvas(destImage, video, side, cropArea);
+};
+
 const setupCommandControl = (
   cameraSide: CameraSide,
-  trainButton: Element
-): Observable<{ trained: boolean; started: boolean }> => {
+  destImage: HTMLCanvasElement
+) => {
   let side: string;
-  let video: HTMLVideoElement;
   let classifier: Classifier;
 
   switch (cameraSide) {
     case CameraSide.Left:
       side = '.left';
-      video = videoLeft;
       classifier = classifierLeft;
       break;
     case CameraSide.Right:
       side = '.right';
-      video = videoRight;
       classifier = classifierRight;
       break;
     default:
@@ -93,7 +132,7 @@ const setupCommandControl = (
   merge(backPress$, neutralPress$, forwardPress$)
     .pipe(
       map(label => {
-        const image = capture(video, cameraSide);
+        const image = captureImageWithCanvas(cameraSide, destImage);
         const example = mobilenet.predict(image);
         return { label, example };
       })
@@ -113,22 +152,33 @@ const setupCommandControl = (
     }
   });
 
-  return combineLatest(classifier.modelStatus$, classifier.controlStatus$).pipe(
-    map(([modelStatus, controlStatus]) => {
-      const trainable =
-        modelStatus !== ModelStatus.Preparing &&
-        modelStatus !== ModelStatus.Training;
-      addExampleButtons.forEach(b => setEnable(b, trainable));
+  classifier.modelStatus$
+    .pipe(
+      map(
+        status =>
+          status !== ModelStatus.Preparing && status !== ModelStatus.Training
+      )
+    )
+    .subscribe(trainable =>
+      addExampleButtons.forEach(button => setEnable(button, trainable))
+    );
+};
+
+const setupTrainButton = (classifier: Classifier, trainButton: HTMLElement) => {
+  classifier.modelStatus$
+    .pipe(
+      map(
+        status =>
+          status !== ModelStatus.Preparing && status !== ModelStatus.Training
+      ),
+      withLatestFrom(classifier.controlStatus$)
+    )
+    .subscribe(([trainable, controlStatus]) => {
       setEnable(
         trainButton,
         trainable && controlStatus === ControlStatus.Stopped
       );
-      return {
-        trained: modelStatus === ModelStatus.Trained,
-        started: controlStatus === ControlStatus.Started
-      };
-    })
-  );
+    });
 };
 
 const setupLogMessage = (cameraSide: CameraSide) => {
@@ -174,6 +224,45 @@ const setupLogMessage = (cameraSide: CameraSide) => {
   });
 };
 
+const setupCropSelector = (
+  canvas: HTMLCanvasElement,
+  cameraSide: CameraSide
+) => {
+  let subject;
+  switch (cameraSide) {
+    case CameraSide.Left:
+      subject = cropAreaLeftSubject;
+      break;
+    case CameraSide.Right:
+      subject = cropAreaRightSubject;
+      break;
+    default:
+      throw new Error(`camera side ${cameraSide} is invalid`);
+  }
+
+  getCropArea(canvas).subscribe(subject);
+
+  const context = canvas.getContext('2d')!;
+  context.strokeStyle = 'rgb(234, 11, 141)';
+
+  subject.subscribe(rect => {
+    context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    if (rect !== null) {
+      const { x, y, width, height } = rect;
+      context.strokeRect(x, y, width, height);
+    }
+  });
+};
+
+const createDestImage = (parentElement: HTMLElement): HTMLCanvasElement => {
+  const destImage = document.createElement('canvas');
+  destImage.width = imageSize;
+  destImage.height = imageSize;
+  destImage.style.visibility = 'invisible';
+  parentElement.appendChild(destImage);
+  return destImage;
+};
+
 const setupUI = async () => {
   videoLeft = document.querySelector(
     '.webcam-box.left video'
@@ -190,17 +279,46 @@ const setupUI = async () => {
   await setupCamera({
     targets: [videoLeft, videoRight],
     selector: cameraSelector,
-    option: { width: 448, height: 224 }
+    option: { width: 2 * imageSize, height: imageSize }
   });
+
+  const webcamBoxLeft = document.querySelector(
+    '.webcam-box.left'
+  )! as HTMLElement;
+  const webcamBoxRight = document.querySelector(
+    '.webcam-box.right'
+  )! as HTMLElement;
+
+  const destImageLeft = createDestImage(webcamBoxLeft);
+  const destImageRight = createDestImage(webcamBoxRight);
 
   // workaround
   const image = capture(videoLeft, CameraSide.Left);
   mobilenet.predict(image);
 
-  const trainLeftButton = document.querySelector('.train-left')!;
-  const trainRightButton = document.querySelector('.train-right')!;
+  const cropSelectorLeft = document.querySelector(
+    '.webcam-box.left .crop-selector'
+  )! as HTMLCanvasElement;
+  const cropSelectorRight = document.querySelector(
+    '.webcam-box.right .crop-selector'
+  )! as HTMLCanvasElement;
+
+  setupCropSelector(cropSelectorLeft, CameraSide.Left);
+  setupCropSelector(cropSelectorRight, CameraSide.Right);
+
+  setupCommandControl(CameraSide.Left, destImageLeft);
+  setupCommandControl(CameraSide.Right, destImageRight);
+
+  const trainLeftButton = document.querySelector('.train-left')! as HTMLElement;
+  const trainRightButton = document.querySelector(
+    '.train-right'
+  )! as HTMLElement;
+
   const startPredictButton = document.querySelector('.start-predict')!;
   const stopPredictButton = document.querySelector('.stop-predict')!;
+
+  setupTrainButton(classifierLeft, trainLeftButton);
+  setupTrainButton(classifierRight, trainRightButton);
 
   const trainLeftClick$ = fromEvent(trainLeftButton, 'click');
   const trainRightClick$ = fromEvent(trainRightButton, 'click');
@@ -211,11 +329,20 @@ const setupUI = async () => {
   trainRightClick$.subscribe(() => classifierRight.startTraining());
 
   combineLatest(
-    setupCommandControl(CameraSide.Left, trainLeftButton),
-    setupCommandControl(CameraSide.Right, trainRightButton)
+    classifierLeft.modelStatus$,
+    classifierRight.modelStatus$
   ).subscribe(([left, right]) => {
-    setEnable(startPredictButton, left.trained && right.trained);
-    const started = left.started && right.started;
+    const canStartPredict =
+      left === ModelStatus.Trained && right === ModelStatus.Trained;
+    setEnable(startPredictButton, canStartPredict);
+  });
+
+  combineLatest(
+    classifierLeft.controlStatus$,
+    classifierRight.controlStatus$
+  ).subscribe(([left, right]) => {
+    const started =
+      left === ControlStatus.Started && right === ControlStatus.Started;
     startPredictButton.classList.toggle('hidden', started);
     stopPredictButton.classList.toggle('hidden', !started);
   });
@@ -233,13 +360,17 @@ const setupUI = async () => {
   );
 
   predictionInterval$.subscribe(async () => {
-    const imageLeft = capture(videoLeft, CameraSide.Left);
-    await classifierLeft.predict(imageLeft, mobilenet);
+    const side = CameraSide.Left;
+    const srcRect = cropAreaLeftSubject.value || fullArea;
+    const image = captureWithCanvas(destImageLeft, videoLeft, side, srcRect);
+    await classifierLeft.predict(image, mobilenet);
   });
 
   predictionInterval$.subscribe(async () => {
-    const imageRight = capture(videoRight, CameraSide.Right);
-    await classifierRight.predict(imageRight, mobilenet);
+    const side = CameraSide.Right;
+    const srcRect = cropAreaRightSubject.value || fullArea;
+    const image = captureWithCanvas(destImageRight, videoRight, side, srcRect);
+    await classifierRight.predict(image, mobilenet);
   });
 
   stopClick$.subscribe(() => {
@@ -250,9 +381,6 @@ const setupUI = async () => {
     classifierLeft.setControlStatus(ControlStatus.Stopped);
     classifierRight.setControlStatus(ControlStatus.Stopped);
   });
-
-  const webcamBoxLeft = document.querySelector('.webcam-box.left')!;
-  const webcamBoxRight = document.querySelector('.webcam-box.right')!;
 
   classifierLeft.controlStatus$.subscribe(status => {
     if (status === ControlStatus.Started) {

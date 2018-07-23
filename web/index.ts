@@ -17,8 +17,7 @@ import {
   startWith,
   distinctUntilChanged,
   debounceTime,
-  tap,
-  filter
+  tap
 } from 'rxjs/operators';
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
@@ -30,6 +29,7 @@ import {
   Rect,
   captureWithCanvas
 } from './camera';
+import { getCropArea } from './squareCrop';
 import { Command, ModelStatus, Classifier, ControlStatus } from './classifier';
 import { createPressStream, loadMobilenet } from './helper';
 
@@ -55,36 +55,6 @@ const fullArea = {
 };
 
 let classifier: Classifier;
-
-const getCropArea = (canvas: HTMLCanvasElement): Observable<Rect> => {
-  const mousedown$ = fromEvent<MouseEvent>(canvas, 'mousedown');
-  const mousemove$ = fromEvent<MouseEvent>(canvas, 'mousemove');
-  const mouseup$ = fromEvent<MouseEvent>(canvas, 'mouseup');
-
-  const getMousePoint = (ev: MouseEvent) => ({ x: ev.offsetX, y: ev.offsetY });
-
-  mousedown$.pipe(mapTo(null)).subscribe(cropAreaSubject);
-
-  return mousedown$.pipe(
-    switchMap(md =>
-      mousemove$.pipe(
-        filter(mm => mm.target === canvas),
-        map(mm => [md, mm]),
-        takeUntil(mouseup$)
-      )
-    ),
-    map(([mousedown, mousemove]) => {
-      const down = getMousePoint(mousedown);
-      const move = getMousePoint(mousemove);
-      const x = down.x;
-      const y = down.y;
-      const width = move.x - down.x;
-      const height = move.y - down.y;
-      const size = Math.max(width, height);
-      return { x, y, width: size, height: size };
-    })
-  );
-};
 
 const setupUI = async () => {
   webcamera = document.querySelector('#webcam') as HTMLVideoElement;
@@ -118,6 +88,8 @@ const setupUI = async () => {
   getCropArea(cropSelector).subscribe(cropAreaSubject);
 
   const cropSelectorContext = cropSelector.getContext('2d')!;
+  cropSelectorContext.strokeStyle = 'rgb(234, 11, 141)';
+
   cropAreaSubject.subscribe(rect => {
     cropSelectorContext.clearRect(
       0,
@@ -127,7 +99,6 @@ const setupUI = async () => {
     );
     if (rect !== null) {
       const { x, y, width, height } = rect;
-      cropSelectorContext.strokeStyle = 'rgb(234, 11, 141)';
       cropSelectorContext.strokeRect(x, y, width, height);
     }
   });
