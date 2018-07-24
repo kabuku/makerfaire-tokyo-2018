@@ -18,7 +18,7 @@ import {
   withLatestFrom
 } from 'rxjs/operators';
 
-import { RobotController } from './robot';
+import { RobotController, RobotName } from './robot';
 import {
   CameraSide,
   setupCamera,
@@ -44,7 +44,6 @@ const fullArea = {
 };
 
 let mobilenet: tf.Model;
-let robotName: BehaviorSubject<string>;
 let robotControllerLeft: RobotController;
 let robotControllerRight: RobotController;
 let classifierLeft: Classifier;
@@ -397,23 +396,28 @@ const setupUI = async () => {
       webcamBoxRight.classList.remove('blink');
     }
   });
-
-  const robotNameInput = document.querySelector(
-    '.robot-name'
-  ) as HTMLInputElement;
-
-  robotNameInput.value = robotName.value;
-
-  fromEvent<Event>(robotNameInput, 'change')
-    .pipe(
-      tap(_ => robotNameInput.blur()),
-      map(_ => robotNameInput.value)
-    )
-    .subscribe(robotName);
 };
 
 (async () => {
-  robotName = new BehaviorSubject('nobunaga');
+  const robotName = new BehaviorSubject(RobotName.Nobunaga);
+  const robotNameSelect = document.querySelector(
+    '.robot-name'
+  ) as HTMLSelectElement;
+
+  const fragment = document.createDocumentFragment();
+  Object.keys(RobotName).forEach(key => {
+    const option = document.createElement('option');
+    option.value = RobotName[key];
+    option.text = key;
+    fragment.appendChild(option);
+  });
+  robotNameSelect.appendChild(fragment);
+
+  robotNameSelect.value = robotName.value;
+
+  fromEvent<Event>(robotNameSelect, 'change')
+    .pipe(map(_ => robotNameSelect.value as RobotName))
+    .subscribe(robotName);
 
   const leftTopic$ = robotName.pipe(map(name => `${name}/left`));
   const rightTopic$ = robotName.pipe(map(name => `${name}/right`));
