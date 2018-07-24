@@ -249,7 +249,12 @@ const setupUI = async () => {
       const trainable =
         modelStatus !== ModelStatus.Preparing &&
         modelStatus !== ModelStatus.Training;
-      addExampleButtons.forEach(b => setEnable(b, trainable));
+      addExampleButtons.forEach(b =>
+        setEnable(
+          b,
+          trainable && !(classifier.easyMode && b === backwardButton)
+        )
+      );
       setEnable(
         trainButton,
         trainable && controlStatus === ControlStatus.Stopped
@@ -326,7 +331,8 @@ window.onload = () => {
     loadMobilenet(),
     handleKeyEvent(topic$)
   ]);
-  classifier = new Classifier();
+  const easyMode = !!Number(new URL(location.href).searchParams.get('easy'));
+  classifier = new Classifier(easyMode);
   await setupUI();
   classifier.setReady();
 })().catch(err => console.error(err));
