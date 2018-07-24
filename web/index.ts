@@ -22,12 +22,21 @@ import {
 import { RobotController } from './robot';
 import { createTopic$ } from './topic';
 import { handleKeyEvent } from './keyEventHandler';
-import { CameraSide, setupCamera, capture } from './camera';
+import {
+  CameraSide,
+  setupCamera,
+  capture,
+  Rect,
+  captureWithCanvas
+} from './camera';
+import { getCropArea } from './squareCrop';
 import { Command, ModelStatus, Classifier, ControlStatus } from './classifier';
 import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './oneside.css';
+
+const imageSize = 224;
 
 let topic$: Observable<string>;
 let robotController: RobotController;
@@ -37,6 +46,14 @@ let webcamera: HTMLVideoElement;
 const activeCameraSideSubject = new BehaviorSubject<CameraSide>(
   CameraSide.Left
 );
+const cropAreaSubject = new BehaviorSubject<Rect | null>(null);
+const fullArea = {
+  x: 0,
+  y: 0,
+  width: imageSize,
+  height: imageSize
+};
+
 let classifier: Classifier;
 
 const setupUI = async () => {
@@ -44,7 +61,7 @@ const setupUI = async () => {
   await setupCamera({
     targets: [webcamera],
     selector: document.getElementById('camera-selector') as HTMLSelectElement,
-    option: { width: 448, height: 224 }
+    option: { width: 2 * imageSize, height: imageSize }
   });
 
   // workaround
@@ -52,6 +69,39 @@ const setupUI = async () => {
   mobilenet.predict(image);
 
   const webcamBox = document.querySelector('.webcam-box')!;
+
+  const destImage = document.createElement('canvas');
+  destImage.width = imageSize;
+  destImage.height = imageSize;
+  destImage.style.visibility = 'invisible';
+  webcamBox.appendChild(destImage);
+
+  // flip canvas image horizontally
+  const ctx = destImage.getContext('2d')!;
+  ctx.translate(destImage.clientWidth, 0);
+  ctx.scale(-1, 1);
+
+  const cropSelector = document.querySelector(
+    '.crop-selector'
+  )! as HTMLCanvasElement;
+
+  getCropArea(cropSelector).subscribe(cropAreaSubject);
+
+  const cropSelectorContext = cropSelector.getContext('2d')!;
+  cropSelectorContext.strokeStyle = 'rgb(234, 11, 141)';
+
+  cropAreaSubject.subscribe(rect => {
+    cropSelectorContext.clearRect(
+      0,
+      0,
+      cropSelector.clientWidth,
+      cropSelector.clientHeight
+    );
+    if (rect !== null) {
+      const { x, y, width, height } = rect;
+      cropSelectorContext.strokeRect(x, y, width, height);
+    }
+  });
 
   const neutralButton = document.querySelector('.neutral button')!;
   const forwardButton = document.querySelector('.forward button')!;
@@ -80,8 +130,14 @@ const setupUI = async () => {
   merge(backPress$, neutralPress$, forwardPress$)
     .pipe(
       map(label => {
+        let cropArea = cropAreaSubject.value || fullArea;
         const activeSide = activeCameraSideSubject.value;
-        const image = capture(webcamera, activeSide);
+        const image = captureWithCanvas(
+          destImage,
+          webcamera,
+          activeSide,
+          cropArea
+        );
         const example = mobilenet.predict(image);
         return { label, example };
       })
@@ -107,8 +163,14 @@ const setupUI = async () => {
       tap(_ => classifier.setControlStatus(ControlStatus.Started)),
       switchMap(_ => interval(100).pipe(takeUntil(stopClick$))),
       flatMap(_ => {
-        const cameraSide = activeCameraSideSubject.value;
-        const image = capture(webcamera, cameraSide);
+        let cropArea = cropAreaSubject.value || fullArea;
+        const activeSide = activeCameraSideSubject.value;
+        const image = captureWithCanvas(
+          destImage,
+          webcamera,
+          activeSide,
+          cropArea
+        );
         return from(classifier.predict(image, mobilenet));
       })
     )

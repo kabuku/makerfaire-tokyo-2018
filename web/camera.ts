@@ -13,6 +13,13 @@ export interface CameraManagerParameter {
   option?: MediaTrackConstraints;
 }
 
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export async function setupCamera({
   targets,
   selector,
@@ -82,6 +89,50 @@ export const capture = (
       .div(tf.scalar(127))
       .sub(tf.scalar(1));
   });
+
+const drawToCanvas = (
+  canvas: HTMLCanvasElement,
+  videoElem: HTMLVideoElement,
+  cameraSide: CameraSide,
+  srcRect: Rect,
+  imageSize: number = 224
+) => {
+  const ctx = canvas.getContext('2d')!;
+
+  // flip src rect horizontally
+  const { x, y, width, height } = srcRect;
+  const offsetX = cameraSide === CameraSide.Right ? imageSize : 0;
+  const adjustedX = 2 * imageSize - x - width - offsetX;
+
+  ctx.drawImage(
+    videoElem,
+    adjustedX,
+    y,
+    width,
+    height,
+    0,
+    0,
+    imageSize,
+    imageSize
+  );
+};
+
+export const captureWithCanvas = (
+  canvas: HTMLCanvasElement,
+  videoElem: HTMLVideoElement,
+  cameraSide: CameraSide,
+  srcRect: Rect
+): tf.Tensor => {
+  drawToCanvas(canvas, videoElem, cameraSide, srcRect);
+  return tf.tidy(() => {
+    const pixels = tf.fromPixels(canvas);
+    const expanded = pixels.expandDims();
+    return expanded
+      .toFloat()
+      .div(tf.scalar(127))
+      .sub(tf.scalar(1));
+  });
+};
 
 function setupSelector(
   selector: HTMLSelectElement,
