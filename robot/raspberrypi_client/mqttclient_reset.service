@@ -1,0 +1,10 @@
+[Unit]
+Description = reset mqtt client for makerfairetokyo 2018
+
+[Service]
+ExecStart = /home/pi/makerFaireTokyo2018/reset.py
+Restart = always
+Type = simple
+
+[Install]
+WantedBy = multi-user.target
