@@ -120,10 +120,6 @@ def main():
     client_args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-    fh = logging.FileHandler('client.log')
-    fh.formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(message)s')
-
-    logger.addHandler(fh)
 
     m_client = MQTTClient(client_args.name, client_args.server)
     signal.signal(signal.SIGINT, m_client.signal_handler)

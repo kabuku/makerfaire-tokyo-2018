@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import RPi.GPIO as GPIO
 from time import sleep
+import RPi.GPIO as GPIO
 import subprocess
 import logging
 import signal
@@ -26,10 +26,6 @@ def signal_handler(number, frame):
 
 def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-    fh = logging.FileHandler('/var/log/reset.log')
-    fh.formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(message)s')
-
-    logger.addHandler(fh)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
