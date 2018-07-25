@@ -29,3 +29,11 @@ export class RobotController {
     this.velocity$.next(velocity);
   }
 }
+
+export enum RobotName {
+  Nobunaga = 'nobunaga',
+  Shingen = 'shingen',
+  Xavier = 'xavier',
+  Perry = 'perry',
+  Shizuka = 'shizuka' // for test mode
+}
