@@ -1,0 +1,10 @@
+[Unit]
+Description = mqtt client for makerfairetokyo 2018
+
+[Service]
+ExecStart = /home/pi/makerFaireTokyo2018/mqtt_client.py
+Restart = always
+Type = simple
+
+[Install]
+WantedBy = multi-user.target

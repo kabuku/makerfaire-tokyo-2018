@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from enum import Enum
 import RPi.GPIO as GPIO
 import signal
@@ -66,10 +67,10 @@ class MQTTClient(object):
         self.client.on_message = self.on_message
         # self.client.on_disconnect = self.on_disconnect
         self.robot_name = robot_name
-        self.right_servo = Servo(gpio_number=17, wheel=Wheel.RIGHT)
-        self.left_servo = Servo(gpio_number=27, wheel=Wheel.LEFT)
+        self.right_servo = Servo(gpio_number=3, wheel=Wheel.RIGHT)
+        self.left_servo = Servo(gpio_number=4, wheel=Wheel.LEFT)
         # setup GPIO for LED
-        self.led_connect = Led(26)
+        self.led_connect = Led(24)
         self.led_message = Led(21)
         self.server_host = server_host
 
