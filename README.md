@@ -30,7 +30,7 @@ $ npx mqtt sub -t 'nobunaga/left' -h 'localhost'
 ## Dropbox との連携
 
 プレイ画像を共有する機能を有効にするには、 Dropbox との連携が必要です。
-https://www.dropbox.com/developers/apps?_tk=pilot_lp&_ad=topbar4&_camp=myapps からアプリを作成し、プロジェクトの直下に `.env` というファイルを作成して以下のような内容を記載してください。 
+https://www.dropbox.com/developers/apps からアプリを作成し、プロジェクトの直下に `.env` というファイルを作成して以下のような内容を記載してください。 
 
 ```
 DROPBOX_ACCESS_TOKEN={{ アプリのアクセストークン }}
