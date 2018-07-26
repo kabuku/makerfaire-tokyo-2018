@@ -160,7 +160,12 @@ const setupCommandControl = (
       )
     )
     .subscribe(trainable =>
-      addExampleButtons.forEach(button => setEnable(button, trainable))
+      addExampleButtons.forEach(button =>
+        setEnable(
+          button,
+          trainable && !(classifier.easyMode && button === backwardButton)
+        )
+      )
     );
 };
 
@@ -447,8 +452,9 @@ const setupUI = async () => {
     RobotController.createInstance(rightTopic$)
   ]);
 
-  classifierLeft = new Classifier();
-  classifierRight = new Classifier();
+  const easyMode = !!Number(new URL(location.href).searchParams.get('easy'));
+  classifierLeft = new Classifier(easyMode);
+  classifierRight = new Classifier(easyMode);
 
   classifierLeft.predictionResult$
     .pipe(

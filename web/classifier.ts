@@ -52,8 +52,9 @@ export class Classifier {
   private readonly controlStatus: BehaviorSubject<ControlStatus>;
   private readonly lossRate: BehaviorSubject<number | null>;
   private readonly predictionResult: BehaviorSubject<Command | null>;
+  private readonly commandLabelDiff: number;
 
-  constructor() {
+  constructor(public easyMode: boolean) {
     this.exampleCounts = new BehaviorSubject([0, 0, 0]);
     this.modelStatus = new BehaviorSubject(ModelStatus.Preparing);
     this.controlStatus = new BehaviorSubject(ControlStatus.Stopped);
@@ -65,11 +66,16 @@ export class Classifier {
     this.controlStatus$ = this.controlStatus.pipe(distinctUntilChanged());
     this.lossRate$ = this.lossRate.asObservable();
     this.predictionResult$ = this.predictionResult.pipe(distinctUntilChanged());
+    this.commandLabelDiff = Number(easyMode);
   }
 
-  addExample = (label: Command, example: any) => {
+  addExample = (command: Command, example: any) => {
+    const label = command - this.commandLabelDiff;
     const y = tf.tidy(() => {
-      return tf.oneHot(tf.tensor1d([label]).toInt(), commandCount);
+      return tf.oneHot(
+        tf.tensor1d([label]).toInt(),
+        commandCount - this.commandLabelDiff
+      );
     });
     if (this.examples.xs === null) {
       this.examples.xs = tf.keep(example);
@@ -87,7 +93,7 @@ export class Classifier {
     }
 
     const counts = this.exampleCounts.value;
-    counts[label] = counts[label] + 1;
+    counts[command] = counts[command] + 1;
     this.exampleCounts.next(counts);
   };
 
@@ -122,7 +128,7 @@ export class Classifier {
         }),
 
         tf.layers.dense({
-          units: commandCount,
+          units: commandCount - this.commandLabelDiff,
           kernelInitializer: 'varianceScaling',
           useBias: false,
           activation: 'softmax'
@@ -173,16 +179,16 @@ export class Classifier {
       return predictions.as1D().argMax();
     });
 
-    const classid = (await predicted.data())[0];
+    const command = (await predicted.data())[0] + this.commandLabelDiff;
 
     image.dispose();
     predicted.dispose();
 
-    this.predictionResult.next(classid);
+    this.predictionResult.next(command);
 
     await tf.nextFrame();
 
-    return classid;
+    return command;
   }
 
   hasModel(): boolean {
