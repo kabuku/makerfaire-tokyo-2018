@@ -215,7 +215,7 @@ export class ImageRecorder {
   private async writeSingleImageOnViewer(imageSrc: string) {
     const ctx = this.viewer.getContext('2d')!;
     const left = 176;
-    const top = 72;
+    const top = 80;
     this.resetBackground(ctx);
     ctx.strokeStyle = 'rgb(32, 202, 117)';
     ctx.lineWidth = 3;
@@ -238,7 +238,7 @@ export class ImageRecorder {
   private async writeTwoImagesOnViewer(leftSrc: string, rightSrc: string) {
     const ctx = this.viewer.getContext('2d')!;
     const left = 32;
-    const top = 72;
+    const top = 80;
     this.resetBackground(ctx);
     ctx.strokeStyle = 'rgb(32, 202, 117)';
     ctx.lineWidth = 3;
@@ -296,12 +296,12 @@ export class ImageRecorder {
     ctx.shadowBlur = 8;
     ctx.shadowColor = ctx.fillStyle;
     ctx.textAlign = 'center';
-    ctx.fillText('ガンメンタイセン', this.viewer.width / 2, 32);
+    ctx.fillText('ガンメンタイセン', this.viewer.width / 2, 40);
 
     ctx.font = '16px PixelMPlus';
     ctx.fillStyle = '#F4AF4C';
     ctx.shadowColor = ctx.fillStyle;
-    ctx.fillText('カブク @Maker Faire Tokyo 2018', this.viewer.width / 2, 56);
+    ctx.fillText('カブク @Maker Faire Tokyo 2018', this.viewer.width / 2, 64);
   }
 
   private loadImage(image: string): Promise<HTMLImageElement> {
