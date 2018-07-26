@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Kabuku @Maker Faire Tokyo 2018</title>
 </head>
 
@@ -14,8 +16,8 @@
 
     <div class="menu">
       <nav class="links">
-        <a href="index.html">1P</a>
-        <a href="pairplay.html">2P</a>
+        <a href="?easy=1">Easy</a>
+        <a href="?easy=0">Hard</a>
       </nav>
       <p class="records-container">
         <a class="show-records disabled" href="#">タタカイノキロク</a>
@@ -26,40 +28,61 @@
     <select id="camera-selector"></select>
 
     <main>
-      <div id="target-selector">
-        <a href="#nobunaga/left">左</a>
-        <a href="#nobunaga/right">右</a>
-      </div>
 
-      <div class="webcam-box">
-        <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
+      <div class="webcam-box left">
+        <video autoplay playsinline muted width="448" height="224"></video>
         <canvas class="crop-selector" width="224" height="224"></canvas>
       </div>
 
-      <div class="command-controls">
+      <div class="webcam-box right">
+        <video autoplay playsinline muted width="448" height="224"></video>
+        <canvas class="crop-selector" width="224" height="224"></canvas>
+      </div>
+
+      <div class="command-controls left">
         <div class="command-control forward">
-          <button disabled="true">↑</button>
+          <button>↑</button>
           <div class="count">0</div>
         </div>
         <div class="command-control neutral">
-          <button disabled="true">□</button>
+          <button>□</button>
           <div class="count">0</div>
         </div>
         <div class="command-control backward">
-          <button disabled="true">↓</button>
+          <button>↓</button>
           <div class="count">0</div>
         </div>
       </div>
 
-      <div class="log-message"></div>
+      <div class="command-controls right">
+        <div class="command-control forward">
+          <button>↑</button>
+          <div class="count">0</div>
+        </div>
+        <div class="command-control neutral">
+          <button>□</button>
+          <div class="count">0</div>
+        </div>
+        <div class="command-control backward">
+          <button>↓</button>
+          <div class="count">0</div>
+        </div>
+      </div>
+
+      <div class="log-message left">Loading...</div>
+      <div class="log-message right">Loading...</div>
 
       <div class="model-controls">
-        <button class="train" disabled>Train</button>
+        <button class="train-left" disabled>◀ Train</button>
+        <button class="train-right" disabled>Train ▶︎</button>
         <button class="start-predict" disabled>Start</button>
         <button class="stop-predict hidden">Stop</button>
       </div>
 
     </main>
+
+    <select class="robot-name"></select>
+
   </div>
   <div class="overlay hidden">
     <div class="modal">
@@ -78,7 +101,8 @@
       <div class="image-qrcode"></div>
     </div>
   </div>
-  <script src="./index.ts"></script>
+
+  <script src="./pairplay.ts"></script>
 </body>
 
 </html>
