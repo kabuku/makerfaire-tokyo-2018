@@ -42,6 +42,7 @@ const fullArea = {
   width: imageSize,
   height: imageSize
 };
+import { ImageRecorder } from './imageRecorder';
 
 let mobilenet: tf.Model;
 let robotName: BehaviorSubject<string>;
@@ -263,6 +264,18 @@ const createDestImage = (parentElement: HTMLElement): HTMLCanvasElement => {
   return destImage;
 };
 
+async function predict(
+  side: CameraSide,
+  cropAreaSubject: BehaviorSubject<Rect | null>,
+  destImage: HTMLCanvasElement,
+  video: HTMLVideoElement,
+  classifier: Classifier
+): Promise<void> {
+  const srcRect = cropAreaSubject.value || fullArea;
+  const image = captureWithCanvas(destImage, video, side, srcRect);
+  await classifier.predict(image, mobilenet);
+}
+
 const setupUI = async () => {
   videoLeft = document.querySelector(
     '.webcam-box.left video'
@@ -359,18 +372,24 @@ const setupUI = async () => {
     shareReplay()
   );
 
-  predictionInterval$.subscribe(async () => {
-    const side = CameraSide.Left;
-    const srcRect = cropAreaLeftSubject.value || fullArea;
-    const image = captureWithCanvas(destImageLeft, videoLeft, side, srcRect);
-    await classifierLeft.predict(image, mobilenet);
-  });
+  const imageRecorder = new ImageRecorder(imageSize);
 
-  predictionInterval$.subscribe(async () => {
-    const side = CameraSide.Right;
-    const srcRect = cropAreaRightSubject.value || fullArea;
-    const image = captureWithCanvas(destImageRight, videoRight, side, srcRect);
-    await classifierRight.predict(image, mobilenet);
+  predictionInterval$.subscribe(() => {
+    predict(
+      CameraSide.Left,
+      cropAreaLeftSubject,
+      destImageLeft,
+      videoLeft,
+      classifierLeft
+    ).catch(e => console.error(e));
+    predict(
+      CameraSide.Right,
+      cropAreaRightSubject,
+      destImageRight,
+      videoRight,
+      classifierRight
+    ).catch(e => console.error(e));
+    imageRecorder.images$.next([destImageLeft, destImageRight]);
   });
 
   stopClick$.subscribe(() => {

@@ -35,6 +35,7 @@ import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './oneside.css';
+import { ImageRecorder } from './imageRecorder';
 
 const imageSize = 224;
 
@@ -158,6 +159,8 @@ const setupUI = async () => {
   const startClick$ = fromEvent(startPredictButton, 'click');
   const stopClick$ = fromEvent(stopPredictButton, 'click');
 
+  const imageRecorder = new ImageRecorder(imageSize);
+
   startClick$
     .pipe(
       tap(_ => classifier.setControlStatus(ControlStatus.Started)),
@@ -171,6 +174,7 @@ const setupUI = async () => {
           activeSide,
           cropArea
         );
+        imageRecorder.images$.next([destImage]);
         return from(classifier.predict(image, mobilenet));
       })
     )
