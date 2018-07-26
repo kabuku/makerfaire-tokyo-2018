@@ -12,10 +12,16 @@
 
     <h1>ガンメンタイセン</h1>
 
-    <nav class="links">
-      <a href="index.html">1P</a>
-      <a href="pairplay.html">2P</a>
-    </nav>
+    <div class="menu">
+      <nav class="links">
+        <a href="index.html">1P</a>
+        <a href="pairplay.html">2P</a>
+      </nav>
+      <p class="records-container">
+        <a class="show-records disabled" href="#">タタカイノキロク</a>
+        <a class="clear-records disabled" href="#">（消去）</a>
+      </p>
+    </div>
 
     <select id="camera-selector"></select>
 
@@ -54,8 +60,25 @@
       </div>
 
     </main>
-
-    <script src="./index.ts"></script>
+  </div>
+  <div class="overlay hidden">
+    <div class="modal">
+      <button class="previous-image" type="button">&lt;</button>
+      <button class="next-image" type="button">&gt;</button>
+      <div class="modal-footer">
+        <button class="toggle-left-image">Left</button>
+        <button class="share-image">
+          Share
+          <div class="loading-ring"></div>
+        </button>
+        <button class="toggle-right-image">Right</button>
+        <button class="close-qrcode">Back</button>
+      </div>
+      <canvas class="recorded-image-viewer" width="576" height="324"></canvas>
+      <div class="image-qrcode"></div>
+    </div>
+  </div>
+  <script src="./index.ts"></script>
 </body>
 
 </html>
