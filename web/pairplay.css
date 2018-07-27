@@ -4,19 +4,14 @@
   grid-template-rows: auto;
   width: 100vw;
   height: 100vh;
-  background-color: var(--bg-color);
-  transition: background-color 200ms linear;
+}
+
+#root {
+  --predicted-button-mask: rgba(0, 0, 0, 0.3);
 }
 
 #root.dark {
-  --grid-color: #08223d;
-  --width: 1px;
-  --gap: 10px;
-  background-image: linear-gradient(var(--grid-color) var(--width), transparent var(--width)),
-                    linear-gradient(90deg, var(--grid-color) var(--width), transparent var(--width));
-  background-size: var(--gap) var(--gap);
-  background-repeat: repeat;
-  background-color: var(--bg-color-dark);
+  --predicted-button-mask: rgba(255, 255, 255, 0.5);
 }
 
 .header {
@@ -58,7 +53,7 @@
   width: 1.20rem;
   height: 1.20rem;
   border-radius: 50%;
-  background-color: rgb(154, 175, 37);
+  background-color: rgb(54, 75, 37);
   box-shadow: 0 0 0 rgba(210, 180, 0, 0.9);
   transition: left 150ms linear;
 }
@@ -97,7 +92,6 @@ main {
   position: relative;
   width: var(--capture-size);
   height: var(--capture-size);
-  background-color: rgba(32, 202, 117, 0.2);
   overflow: hidden;
 }
 
@@ -148,17 +142,16 @@ main {
 }
 
 .command-control button[predicted] {
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: var(--predicted-button-mask);
 }
 
 .command-control .count {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 2px;
+  right: 2px;
   background: rgba(0, 0, 0, 0.5);
   color: white;
   padding: 2px;
-  z-index: -1;
 }
 
 .log-message.left {

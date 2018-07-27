@@ -441,22 +441,6 @@ const setupUI = async () => {
     classifierLeft.setControlStatus(ControlStatus.Stopped);
     classifierRight.setControlStatus(ControlStatus.Stopped);
   });
-
-  classifierLeft.controlStatus$.subscribe(status => {
-    if (status === ControlStatus.Started) {
-      webcamBoxLeft.classList.add('blink');
-    } else {
-      webcamBoxLeft.classList.remove('blink');
-    }
-  });
-
-  classifierRight.controlStatus$.subscribe(status => {
-    if (status === ControlStatus.Started) {
-      webcamBoxRight.classList.add('blink');
-    } else {
-      webcamBoxRight.classList.remove('blink');
-    }
-  });
 };
 
 (async () => {
