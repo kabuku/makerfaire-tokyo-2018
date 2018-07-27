@@ -4,7 +4,8 @@ import {
   fromEvent,
   merge,
   interval,
-  BehaviorSubject
+  BehaviorSubject,
+  Observable
 } from 'rxjs';
 import {
   map,
@@ -15,7 +16,9 @@ import {
   distinctUntilChanged,
   tap,
   shareReplay,
-  withLatestFrom
+  withLatestFrom,
+  scan,
+  startWith
 } from 'rxjs/operators';
 
 import { RobotController, RobotName } from './robot';
@@ -280,7 +283,41 @@ async function predict(
   await classifier.predict(image, mobilenet);
 }
 
+const changeTheme = (isDark: boolean) => {
+  const root = document.querySelector('#root')!;
+  if (isDark) {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+};
+
+const setupThemeToggle = () => {
+  const themeToggleSwitch = document.querySelector('.theme-toggle input')!;
+  const toggleContainer = document.querySelector('.toggle-button-container')!;
+
+  const checked$: Observable<boolean> = fromEvent(
+    themeToggleSwitch,
+    'click'
+  ).pipe(
+    startWith(false),
+    scan((acc, _) => !acc),
+    shareReplay()
+  );
+
+  checked$.subscribe(isChecked => {
+    if (isChecked) {
+      toggleContainer.classList.add('theme-checked');
+    } else {
+      toggleContainer.classList.remove('theme-checked');
+    }
+    changeTheme(isChecked);
+  });
+};
+
 const setupUI = async () => {
+  setupThemeToggle();
+
   videoLeft = document.querySelector(
     '.webcam-box.left video'
   ) as HTMLVideoElement;

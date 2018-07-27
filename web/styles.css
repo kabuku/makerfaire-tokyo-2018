@@ -1,6 +1,7 @@
 :root {
   --capture-size: 224px;
-  --bg-color: rgb(1, 5, 8);
+  --bg-color: rgb(255, 255, 255);
+  --bg-color-dark: rgb(1, 5, 8);
   --main-color: #53FFE2;
   --accent-color: #FADD5A;
 }
