@@ -1,3 +1,32 @@
+#root {
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: auto;
+  width: 100vw;
+  height: 100vh;
+
+  --grid-color: #08223d;
+  --width: 1px;
+  --gap: 10px;
+  background-color: var(--bg-color);
+  background-image: linear-gradient(var(--grid-color) var(--width), transparent var(--width)),
+                    linear-gradient(90deg, var(--grid-color) var(--width), transparent var(--width));
+  background-size: var(--gap) var(--gap);
+  background-repeat: repeat;
+}
+
+.header {
+  width: 100%;
+  height: 4rem;
+}
+
+.content {
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: auto;
+  justify-items: center;
+}
+
 main {
   display: grid;
   grid-template-columns: 280px 120px 120px 280px;

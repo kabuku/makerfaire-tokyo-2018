@@ -18,16 +18,13 @@
 }
 
 html {
-  --grid-color: #08223d;
-  --width: 1px;
-  --gap: 10px;
   font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
   color: var(--main-color);
-  background-color: var(--bg-color);
-  background-image: linear-gradient(var(--grid-color) var(--width), transparent var(--width)),
-                    linear-gradient(90deg, var(--grid-color) var(--width), transparent var(--width));
-  background-size: var(--gap) var(--gap);
-  background-repeat: repeat;
+}
+
+body {
+  margin: 0;
+  padding: 0;
 }
 
 h1 {
@@ -123,12 +120,6 @@ select {
   pointer-events: none;
   cursor: default;
   opacity: 0.6;
-}
-
-#root {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 .hidden {
