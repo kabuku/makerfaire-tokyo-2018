@@ -14,54 +14,14 @@
 
     <header class="header">
 
-      <div class="theme-toggle">
-        <label class="toggle-button-container">
-          <input type="checkbox" checked>
-          <span class="toggle-button-bg"></span>
-          <span class="toggle-button-circle"></span>
-        </label>
-      </div>
+      <a class="show-records disabled" href="#">タタカイノキロク</a>
+      <div class="settings header-button">Settings</div>
 
     </header>
 
     <div class="content">
 
       <h1>ガンメンタイセン</h1>
-
-      <div class="menu">
-        <nav class="links">
-          <a href="?easy=1">Easy</a>
-          <a href="?easy=0">Hard</a>
-        </nav>
-        <p class="records-container">
-          <a class="show-records disabled" href="#">タタカイノキロク</a>
-          <a class="clear-records disabled" href="#">（消去）</a>
-        </p>
-        <details class="velocity-tuning-container">
-          <summary>チューニング</summary>
-          <table class="velocity-tuning">
-            <thead>
-              <tr>
-                <th></th>
-                <th>左</th>
-                <th>右</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>前</td>
-                <td><input type="number" data-target="left-forward"></td>
-                <td><input type="number" data-target="right-forward"></td>
-              </tr>
-              <tr>
-                <td>後</td>
-                <td><input type="number" data-target="left-backward"></td>
-                <td><input type="number" data-target="right-backward"></td>
-              </tr>
-            </tbody>
-          </table>
-        </details>
-      </div>
 
       <select id="camera-selector"></select>
 
@@ -120,6 +80,63 @@
       </main>
 
       <select class="robot-name"></select>
+    </div>
+
+    <div class="modal-settings">
+      <div class="modal-settings-content">
+
+        <h5>テーマ</h5>
+        <div class="theme-toggle">
+          <label>
+            <input type="checkbox" checked>
+            <span class="toggle-button-bg"></span>
+            <span class="toggle-button-circle"></span>
+          </label>
+        </div>
+
+        <h5>レベル</h5>
+        <nav>
+          <a href="?easy=1">Easy</a>
+          <a href="?easy=0">Hard</a>
+        </nav>
+
+        <h5>チューニング</h5>
+        <table class="velocity-tuning">
+          <thead>
+            <tr>
+              <th></th>
+              <th>左</th>
+              <th>右</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>前</td>
+              <td>
+                <input type="number" data-target="left-forward">
+              </td>
+              <td>
+                <input type="number" data-target="right-forward">
+              </td>
+            </tr>
+            <tr>
+              <td>後</td>
+              <td>
+                <input type="number" data-target="left-backward">
+              </td>
+              <td>
+                <input type="number" data-target="right-backward">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h5>その他</h5>
+        <p class="records-container">
+          <a class="clear-records disabled" href="#">タタカイノキロクを消去</a>
+        </p>
+
+      </div>
     </div>
 
   </div>

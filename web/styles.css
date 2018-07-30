@@ -73,10 +73,20 @@ body {
 h1 {
   text-shadow: var(--main-color) 0 0 8px;
   font-size: 2.4rem;
+  margin: 1rem 0;
+}
+
+p {
+  margin: 0;
 }
 
 a {
+  color: var(--accent-color);
   text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 button {
@@ -120,49 +130,6 @@ select {
   font-size: 0.8rem;
   color: var(--main-color);
   border-color: var(--main-color);
-}
-
-.menu {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-}
-
-.menu a:hover {
-  text-decoration: underline;
-}
-
-.links {
-  padding: 0.5rem 1rem;
-}
-
-.links a {
-  color: var(--accent-color);
-}
-
-.records-container {
-  margin: 0;
-  padding: 0.5rem 1rem;
-}
-
-.records-container a {
-  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
-}
-
-.show-records {
-  color: var(--main-color);
-  caret-color: var(--main-color);
-}
-
-.clear-records {
-  color: var(--accent-color);
-  caret-color: var(--accent-color);
-}
-
-.show-records.disabled, .clear-records.disabled {
-  pointer-events: none;
-  cursor: default;
-  opacity: 0.6;
 }
 
 .hidden {
@@ -339,11 +306,4 @@ select {
   to {
     transform: rotate(360deg)
   }
-}
-
-.velocity-tuning-container {
-  padding: 0.5rem 1rem;
-}
-.velocity-tuning-container input {
-  width: 2rem;
 }
