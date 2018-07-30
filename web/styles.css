@@ -340,3 +340,10 @@ select {
     transform: rotate(360deg)
   }
 }
+
+.velocity-tuning-container {
+  padding: 0.5rem 1rem;
+}
+.velocity-tuning-container input {
+  width: 2rem;
+}
