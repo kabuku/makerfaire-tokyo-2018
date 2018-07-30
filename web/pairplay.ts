@@ -47,6 +47,7 @@ const fullArea = {
 };
 import { ImageRecorder } from './imageRecorder';
 import { VelocityTuner } from './velocityTuner';
+import { handleKeyEvent } from './keyEventHandler';
 
 let mobilenet: tf.Model;
 let robotControllerLeft: RobotController;
@@ -479,6 +480,7 @@ const setupUI = async () => {
   classifierRight = new Classifier(easyMode);
 
   const velocityTuner = new VelocityTuner(robotName);
+  await handleKeyEvent(robotName, velocityTuner);
 
   classifierLeft.predictionResult$
     .pipe(
