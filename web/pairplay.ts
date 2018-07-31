@@ -18,7 +18,8 @@ import {
   shareReplay,
   withLatestFrom,
   scan,
-  startWith
+  startWith,
+  filter
 } from 'rxjs/operators';
 
 import { RobotController, RobotName } from './robot';
@@ -296,7 +297,7 @@ const changeTheme = (isDark: boolean) => {
 
 const setupThemeToggle = () => {
   const themeToggleSwitch = document.querySelector('.theme-toggle input')!;
-  const toggleContainer = document.querySelector('.toggle-button-container')!;
+  const themeToggle = document.querySelector('.theme-toggle')!;
 
   const checked$: Observable<boolean> = fromEvent(
     themeToggleSwitch,
@@ -309,9 +310,9 @@ const setupThemeToggle = () => {
 
   checked$.subscribe(isChecked => {
     if (isChecked) {
-      toggleContainer.classList.add('theme-checked');
+      themeToggle.classList.add('theme-checked');
     } else {
-      toggleContainer.classList.remove('theme-checked');
+      themeToggle.classList.remove('theme-checked');
     }
     changeTheme(isChecked);
   });
@@ -319,6 +320,30 @@ const setupThemeToggle = () => {
 
 const setupUI = async () => {
   setupThemeToggle();
+
+  const settingsButton = document.querySelector('.header .settings')!;
+  const settingsModal = document.querySelector('.modal-settings')!;
+
+  document
+    .querySelector('.modal-settings-content')!
+    .addEventListener('click', ev => ev.stopImmediatePropagation());
+
+  merge(
+    fromEvent(settingsButton, 'click').pipe(mapTo(true)),
+    fromEvent(settingsModal, 'click').pipe(mapTo(false)),
+    fromEvent<KeyboardEvent>(window, 'keydown').pipe(
+      filter(ev => ev.key === 'Escape'),
+      mapTo(false)
+    )
+  )
+    .pipe(startWith(false))
+    .subscribe(isOpen => {
+      if (isOpen) {
+        settingsModal.classList.add('active');
+      } else {
+        settingsModal.classList.remove('active');
+      }
+    });
 
   videoLeft = document.querySelector(
     '.webcam-box.left video'
