@@ -18,7 +18,8 @@ import {
   shareReplay,
   withLatestFrom,
   scan,
-  startWith
+  startWith,
+  filter
 } from 'rxjs/operators';
 
 import { RobotController, RobotName } from './robot';
@@ -329,7 +330,11 @@ const setupUI = async () => {
 
   merge(
     fromEvent(settingsButton, 'click').pipe(mapTo(true)),
-    fromEvent(settingsModal, 'click').pipe(mapTo(false))
+    fromEvent(settingsModal, 'click').pipe(mapTo(false)),
+    fromEvent<KeyboardEvent>(window, 'keydown').pipe(
+      filter(ev => ev.keyCode === 27), // when Escape key pressed
+      mapTo(false)
+    )
   )
     .pipe(startWith(false))
     .subscribe(isOpen => {
