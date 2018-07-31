@@ -12,7 +12,7 @@
     "precommit": "lint-staged",
     "ci": "tsc && tslint \"web/**/*.ts\" -p tsconfig.json"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
     "@tensorflow/tfjs": "^0.11.6",
     "mqtt": "^2.18.1",
