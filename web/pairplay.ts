@@ -57,6 +57,7 @@ let classifierLeft: Classifier;
 let classifierRight: Classifier;
 let videoLeft: HTMLVideoElement;
 let videoRight: HTMLVideoElement;
+let imageRecorder: ImageRecorder;
 
 const setEnable = (elem: Element, enabled: boolean) => {
   if (enabled) {
@@ -321,29 +322,65 @@ const setupThemeToggle = () => {
 const setupUI = async () => {
   setupThemeToggle();
 
-  const settingsButton = document.querySelector('.header .settings')!;
-  const settingsModal = document.querySelector('.modal-settings')!;
+  // setup modals
 
-  document
-    .querySelector('.modal-settings-content')!
-    .addEventListener('click', ev => ev.stopImmediatePropagation());
+  const modalContainer = document.querySelector('.modal-container')!;
+  const outsideClick$ = fromEvent(modalContainer, 'click');
+
+  const escapePressed$ = fromEvent<KeyboardEvent>(window, 'keydown').pipe(
+    filter(ev => ev.key === 'Escape')
+  );
+
+  // image recording
+  imageRecorder = new ImageRecorder(imageSize);
+
+  const recordedImagesModal = document.querySelector('.modal-recorded-images')!;
+  const showRecordsButton = document.querySelector('.show-records')!;
+  const openRecords$ = fromEvent(showRecordsButton, 'click').pipe(
+    tap(ev => ev.preventDefault()),
+    mapTo(true)
+  );
+
+  merge(
+    openRecords$.pipe(mapTo(true)),
+    outsideClick$.pipe(mapTo(false)),
+    escapePressed$.pipe(mapTo(false))
+  )
+    .pipe(startWith(false))
+    .subscribe(isOpen => {
+      if (isOpen) {
+        recordedImagesModal.classList.add('active');
+        modalContainer.classList.add('active');
+        imageRecorder.displayImages();
+      } else {
+        recordedImagesModal.classList.remove('active');
+        modalContainer.classList.remove('active');
+      }
+    });
+
+  // settings
+  const settingsModal = document.querySelector('.modal-settings-content')!;
+  const settingsButton = document.querySelector('.header .settings')!;
 
   merge(
     fromEvent(settingsButton, 'click').pipe(mapTo(true)),
-    fromEvent(settingsModal, 'click').pipe(mapTo(false)),
-    fromEvent<KeyboardEvent>(window, 'keydown').pipe(
-      filter(ev => ev.key === 'Escape'),
-      mapTo(false)
-    )
+    outsideClick$.pipe(mapTo(false)),
+    escapePressed$.pipe(mapTo(false))
   )
     .pipe(startWith(false))
     .subscribe(isOpen => {
       if (isOpen) {
         settingsModal.classList.add('active');
+        modalContainer.classList.add('active');
       } else {
         settingsModal.classList.remove('active');
+        modalContainer.classList.remove('active');
       }
     });
+
+  [settingsModal, recordedImagesModal].forEach(elem => {
+    elem.addEventListener('click', ev => ev.stopImmediatePropagation());
+  });
 
   videoLeft = document.querySelector(
     '.webcam-box.left video'
@@ -440,7 +477,16 @@ const setupUI = async () => {
     shareReplay()
   );
 
-  const imageRecorder = new ImageRecorder(imageSize);
+  predictionInterval$
+    .pipe(
+      filter(clock => clock % 100 === 0), // record image every 10 seconds
+      map(_ =>
+        [destImageLeft, destImageRight].map(canvas => canvas.toDataURL())
+      )
+    )
+    .subscribe(imageURLs => {
+      imageRecorder.addImageURLs(imageURLs as [string, string]);
+    });
 
   predictionInterval$.subscribe(() => {
     predict(
@@ -457,7 +503,6 @@ const setupUI = async () => {
       videoRight,
       classifierRight
     ).catch(e => console.error(e));
-    imageRecorder.images$.next([destImageLeft, destImageRight]);
   });
 
   stopClick$.subscribe(() => {

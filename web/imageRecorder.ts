@@ -8,15 +8,14 @@ const QRCode = require('qrcodejs2');
 export class ImageRecorder {
   readonly images$ = new Subject<[HTMLCanvasElement, HTMLCanvasElement]>();
   private _recordedImages: ReadonlyArray<[string] | [string, string]> = [];
-  private _selectedIndex = 0;
+  private selectedIndex = 0;
   private _hideLeft = false;
   private _hideRight = false;
-  private readonly recordsButton = document.querySelector('.show-records')!;
+
+  private readonly modal = document.querySelector('.modal-recorded-images')!;
   private readonly clearRecordsButton = document.querySelector(
     '.clear-records'
   )!;
-  private readonly modal = document.querySelector('.modal')!;
-  private readonly overlay = document.querySelector('.overlay')!;
   private readonly previousImageButton = document.querySelector(
     '.previous-image'
   )! as HTMLButtonElement;
@@ -46,21 +45,6 @@ export class ImageRecorder {
       ];
     });
 
-    // show recorded images on modal
-    fromEvent(this.recordsButton, 'click').subscribe(e => {
-      e.preventDefault();
-      this.selectedIndex = 0;
-      this.overlay.classList.remove('hidden');
-    });
-
-    // close modal
-    fromEvent(this.overlay, 'click').subscribe(({ target, currentTarget }) => {
-      if (target === currentTarget) {
-        this.overlay.classList.add('hidden');
-        this.modal.classList.remove('display-qrcode');
-      }
-    });
-
     // clear recorded images
     fromEvent(this.clearRecordsButton, 'click').subscribe(e => {
       e.preventDefault();
@@ -68,12 +52,22 @@ export class ImageRecorder {
     });
 
     // go back and forth on modal
-    fromEvent(this.previousImageButton, 'click').subscribe(
-      () => (this.selectedIndex -= 1)
-    );
-    fromEvent(this.nextImageButton, 'click').subscribe(
-      () => (this.selectedIndex += 1)
-    );
+    fromEvent(this.previousImageButton, 'click').subscribe(() => {
+      if (this.selectedIndex - 1 < 0) {
+        this.selectedIndex = this.recordedImages.length - 1;
+      } else {
+        this.selectedIndex -= 1;
+      }
+      this.writeImageOnViewer();
+    });
+    fromEvent(this.nextImageButton, 'click').subscribe(() => {
+      if (this.selectedIndex + 1 >= this.recordedImages.length) {
+        this.selectedIndex = 0;
+      } else {
+        this.selectedIndex += 1;
+      }
+      this.writeImageOnViewer();
+    });
 
     // toggle display state of images
     this.toggleLeftButton &&
@@ -111,10 +105,22 @@ export class ImageRecorder {
       }
       this.shareButton.classList.remove('loading');
     });
+
     fromEvent(this.closeQRCodeButton, 'click').subscribe(() => {
       this.qrCode.clear();
       this.modal.classList.remove('display-qrcode');
     });
+  }
+
+  addImageURLs(urls: [string, string]) {
+    this.recordedImages = [...this.recordedImages, urls];
+  }
+
+  displayImages() {
+    if (0 < this.recordedImages.length) {
+      this.selectedIndex = 0;
+      this.writeImageOnViewer();
+    }
   }
 
   private get recordedImages(): ReadonlyArray<[string] | [string, string]> {
@@ -131,23 +137,10 @@ export class ImageRecorder {
   private toggleRecordButtonsDisabled(
     recordedImages: ReadonlyArray<[string] | [string, string]>
   ): void {
-    [this.recordsButton, this.clearRecordsButton].forEach(button =>
-      button.classList.toggle('disabled', recordedImages.length === 0)
+    this.clearRecordsButton.classList.toggle(
+      'disabled',
+      recordedImages.length === 0
     );
-  }
-
-  private get selectedIndex(): number {
-    return this._selectedIndex;
-  }
-  private set selectedIndex(selectedIndex: number) {
-    if (selectedIndex < 0) {
-      selectedIndex = this.recordedImages.length - 1;
-    }
-    if (selectedIndex >= this.recordedImages.length) {
-      selectedIndex = 0;
-    }
-    this._selectedIndex = selectedIndex;
-    this.writeImageOnViewer();
   }
 
   private get hideLeft(): boolean {
@@ -177,24 +170,39 @@ export class ImageRecorder {
   }
 
   private writeImageOnViewer() {
+    const root = document.querySelector('#root')!;
+    const style = getComputedStyle(root);
+
     const images = this.recordedImages[this.selectedIndex];
     if (images.length === 1 || this.hideRight) {
-      this.writeSingleImageOnViewer(images[0]).catch(e => console.error(e));
+      this.writeSingleImageOnViewer(images[0], style).catch(e =>
+        console.error(e)
+      );
     } else if (this.hideLeft) {
-      this.writeSingleImageOnViewer(images[1]).catch(e => console.error(e));
+      this.writeSingleImageOnViewer(images[1], style).catch(e =>
+        console.error(e)
+      );
     } else {
-      this.writeTwoImagesOnViewer(images[0], images[1]).catch(e =>
+      this.writeTwoImagesOnViewer(images[0], images[1], style).catch(e =>
         console.error(e)
       );
     }
   }
 
-  private async writeSingleImageOnViewer(imageSrc: string) {
+  private async writeSingleImageOnViewer(
+    imageSrc: string,
+    style: CSSStyleDeclaration
+  ) {
+    const borderColor = style.getPropertyValue('--camerabox-border-color');
+
     const ctx = this.viewer.getContext('2d')!;
-    const left = 176;
-    const top = 80;
-    this.resetBackground(ctx);
-    ctx.strokeStyle = 'rgb(32, 202, 117)';
+    this.resetBackground(ctx, style);
+
+    const centerX = ctx.canvas.width / 2.0;
+    const top = 140;
+    const left = centerX - this.imageSize / 2.0;
+
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = 3;
     ctx.shadowBlur = 20;
     ctx.shadowColor = ctx.strokeStyle;
@@ -210,18 +218,34 @@ export class ImageRecorder {
     ctx.scale(-1, 1);
     ctx.drawImage(await this.loadImage(imageSrc), -left - this.imageSize, top);
     ctx.scale(-1, 1);
+
+    ctx.strokeStyle = 'transparent';
+    ctx.shadowColor = 'transparent';
   }
 
-  private async writeTwoImagesOnViewer(leftSrc: string, rightSrc: string) {
+  private async writeTwoImagesOnViewer(
+    leftSrc: string,
+    rightSrc: string,
+    style: CSSStyleDeclaration
+  ) {
     const ctx = this.viewer.getContext('2d')!;
-    const left = 32;
-    const top = 80;
-    this.resetBackground(ctx);
-    ctx.strokeStyle = 'rgb(32, 202, 117)';
+    const borderColor = style.getPropertyValue('--camerabox-border-color');
+
+    this.resetBackground(ctx, style);
+
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = 3;
     ctx.shadowBlur = 20;
     ctx.shadowColor = ctx.strokeStyle;
+
     const halfLineWidth = ctx.lineWidth / 2;
+
+    const top = 140;
+    const betweenSpace = 80;
+    const centerX = ctx.canvas.width / 2.0;
+
+    const left = centerX - betweenSpace / 2.0 - this.imageSize;
+
     ctx.rect(
       left - halfLineWidth,
       top - halfLineWidth,
@@ -230,7 +254,7 @@ export class ImageRecorder {
     );
     ctx.stroke();
     ctx.rect(
-      left + this.viewer.width / 2 - halfLineWidth,
+      centerX + betweenSpace / 2.0 + halfLineWidth,
       top - halfLineWidth,
       this.imageSize + ctx.lineWidth,
       this.imageSize + ctx.lineWidth
@@ -241,20 +265,34 @@ export class ImageRecorder {
     ctx.drawImage(await this.loadImage(leftSrc), -left - this.imageSize, top);
     ctx.drawImage(
       await this.loadImage(rightSrc),
-      -left - this.viewer.width / 2 - this.imageSize,
+      -(centerX + betweenSpace / 2.0 + this.imageSize + ctx.lineWidth),
       top
     );
     ctx.scale(-1, 1);
+
+    ctx.strokeStyle = 'transparent';
+    ctx.shadowColor = 'transparent';
   }
 
-  private resetBackground(ctx: CanvasRenderingContext2D): void {
+  private resetBackground(
+    ctx: CanvasRenderingContext2D,
+    style: CSSStyleDeclaration
+  ): void {
+    const bgColor = style.getPropertyValue('--bg-color');
+    const gridColor = style.getPropertyValue('--bg-grid-color');
+    const mainColor = style.getPropertyValue('--main-color');
+    const accentColor = style.getPropertyValue('--accent-color');
+
     ctx.clearRect(0, 0, this.viewer.width, this.viewer.height);
+
     ctx.beginPath();
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, this.viewer.width, this.viewer.height);
 
     let x = 0;
     while (x < this.viewer.width) {
       const gradient = ctx.createLinearGradient((x += 10), 0, 1, 0);
-      gradient.addColorStop(0, '#08223d');
+      gradient.addColorStop(0, gridColor);
       gradient.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient;
       ctx.fillRect(x, 0, 1, this.viewer.height);
@@ -262,23 +300,26 @@ export class ImageRecorder {
     let y = 0;
     while (y < this.viewer.height) {
       const gradient = ctx.createLinearGradient(0, (y += 10), 0, 1);
-      gradient.addColorStop(0, '#08223d');
+      gradient.addColorStop(0, gridColor);
       gradient.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, y, this.viewer.width, 1);
     }
 
     ctx.font = '32px PixelMPlus';
-    ctx.fillStyle = '#53FFE2';
+    ctx.fillStyle = mainColor;
     ctx.shadowBlur = 8;
     ctx.shadowColor = ctx.fillStyle;
     ctx.textAlign = 'center';
-    ctx.fillText('ガンメンタイセン', this.viewer.width / 2, 40);
+    ctx.fillText('ガンメンタイセン', this.viewer.width / 2, 60);
 
     ctx.font = '16px PixelMPlus';
-    ctx.fillStyle = '#F4AF4C';
+    ctx.fillStyle = accentColor;
     ctx.shadowColor = ctx.fillStyle;
-    ctx.fillText('カブク @Maker Faire Tokyo 2018', this.viewer.width / 2, 64);
+    ctx.fillText('カブク @Maker Faire Tokyo 2018', this.viewer.width / 2, 96);
+
+    ctx.fillStyle = 'transparent';
+    ctx.shadowColor = 'transparent';
   }
 
   private loadImage(image: string): Promise<HTMLImageElement> {
