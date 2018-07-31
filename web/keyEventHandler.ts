@@ -1,17 +1,13 @@
 import { RobotController } from './robot';
-import { Observable } from 'rxjs';
-import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
-
-let handler: (e: KeyboardEvent) => any;
+import { fromEvent, merge, Observable } from 'rxjs';
+import { filter, map, tap } from 'rxjs/operators';
+import { VelocityTuner } from './velocityTuner';
+import { Command } from './classifier';
 
 export async function handleKeyEvent(
-  topic$: Observable<string>
+  robotName$: Observable<string>,
+  velocityTuner: VelocityTuner
 ): Promise<void> {
-  const robotName$ = topic$.pipe(
-    map(topic => topic.split('/')[0]),
-    distinctUntilChanged(),
-    shareReplay()
-  );
   const [left, right] = await Promise.all(
     ['left', 'right'].map(wheel =>
       RobotController.createInstance(
@@ -19,39 +15,32 @@ export async function handleKeyEvent(
       )
     )
   );
-  if (handler) {
-    document.removeEventListener('keydown', handler);
-  } else {
-    console.table({
-      '⏫': {
-        left: 'w',
-        right: 'p'
-      },
-      '😐': {
-        left: 's',
-        right: 'l'
-      },
-      '⏬': {
-        left: 'x',
-        right: ','
-      }
-    });
-  }
-  handler = ({ key }) => {
-    switch (key) {
-      case 'w':
-        return left.setVelocity(1);
-      case 's':
-        return left.setVelocity(0);
-      case 'x':
-        return left.setVelocity(-1);
-      case 'p':
-        return right.setVelocity(1);
-      case 'l':
-        return right.setVelocity(0);
-      case ',':
-        return right.setVelocity(-1);
-    }
-  };
-  document.addEventListener('keydown', handler);
+  let controlling = false;
+  merge(
+    fromEvent(document, 'keydown').pipe(
+      filter(() => !controlling),
+      map(({ key }: KeyboardEvent) => {
+        switch (key) {
+          case 'ArrowUp':
+            return [Command.Forward, Command.Forward];
+          case 'ArrowLeft':
+            return [Command.Neutral, Command.Forward];
+          case 'ArrowRight':
+            return [Command.Forward, Command.Neutral];
+          case 'ArrowDown':
+            return [Command.Backward, Command.Backward];
+        }
+      }),
+      filter(Boolean),
+      tap(() => (controlling = true))
+    ),
+    fromEvent(document, 'keyup').pipe(
+      filter(() => controlling),
+      map(() => [Command.Neutral, Command.Neutral]),
+      tap(() => (controlling = false))
+    )
+  ).subscribe(([leftCommand, rightCommand]) => {
+    left.setVelocity(velocityTuner.getVelocity('left', leftCommand));
+    right.setVelocity(velocityTuner.getVelocity('right', rightCommand));
+  });
 }

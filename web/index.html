@@ -37,6 +37,30 @@
           <a class="show-records disabled" href="#">タタカイノキロク</a>
           <a class="clear-records disabled" href="#">（消去）</a>
         </p>
+        <details class="velocity-tuning-container">
+          <summary>チューニング</summary>
+          <table class="velocity-tuning">
+            <thead>
+              <tr>
+                <th></th>
+                <th>左</th>
+                <th>右</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>前</td>
+                <td><input type="number" data-target="left-forward"></td>
+                <td><input type="number" data-target="right-forward"></td>
+              </tr>
+              <tr>
+                <td>後</td>
+                <td><input type="number" data-target="left-backward"></td>
+                <td><input type="number" data-target="right-backward"></td>
+              </tr>
+            </tbody>
+          </table>
+        </details>
       </div>
 
       <select id="camera-selector"></select>

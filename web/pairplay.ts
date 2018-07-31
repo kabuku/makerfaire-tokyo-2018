@@ -46,6 +46,8 @@ const fullArea = {
   height: imageSize
 };
 import { ImageRecorder } from './imageRecorder';
+import { VelocityTuner } from './velocityTuner';
+import { handleKeyEvent } from './keyEventHandler';
 
 let mobilenet: tf.Model;
 let robotControllerLeft: RobotController;
@@ -477,15 +479,19 @@ const setupUI = async () => {
   classifierLeft = new Classifier(easyMode);
   classifierRight = new Classifier(easyMode);
 
+  const velocityTuner = new VelocityTuner(robotName);
+  await handleKeyEvent(robotName, velocityTuner);
+
   classifierLeft.predictionResult$
     .pipe(
       debounceTime(150),
       distinctUntilChanged()
     )
-    .subscribe(label => {
-      if (label !== null) {
-        const velocity = label - 1; // label to velocity
-        robotControllerLeft.setVelocity(velocity);
+    .subscribe(command => {
+      if (command !== null) {
+        robotControllerLeft.setVelocity(
+          velocityTuner.getVelocity('left', command)
+        );
       }
     });
   classifierRight.predictionResult$
@@ -493,10 +499,11 @@ const setupUI = async () => {
       debounceTime(150),
       distinctUntilChanged()
     )
-    .subscribe(label => {
-      if (label !== null) {
-        const velocity = label - 1; // label to velocity
-        robotControllerRight.setVelocity(velocity);
+    .subscribe(command => {
+      if (command !== null) {
+        robotControllerRight.setVelocity(
+          velocityTuner.getVelocity('right', command)
+        );
       }
     });
 
