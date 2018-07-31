@@ -332,7 +332,7 @@ const setupUI = async () => {
     fromEvent(settingsButton, 'click').pipe(mapTo(true)),
     fromEvent(settingsModal, 'click').pipe(mapTo(false)),
     fromEvent<KeyboardEvent>(window, 'keydown').pipe(
-      filter(ev => ev.keyCode === 27), // when Escape key pressed
+      filter(ev => ev.key === 'Escape'),
       mapTo(false)
     )
   )
