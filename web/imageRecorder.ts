@@ -1,12 +1,12 @@
 import { Subject, fromEvent } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 
+import { uploadImage, getTemporaryLink } from './api';
+
 const QRCode = require('qrcodejs2');
 
 export class ImageRecorder {
-  readonly images$ = new Subject<
-    [HTMLCanvasElement] | [HTMLCanvasElement, HTMLCanvasElement]
-  >();
+  readonly images$ = new Subject<[HTMLCanvasElement, HTMLCanvasElement]>();
   private _recordedImages: ReadonlyArray<[string] | [string, string]> = [];
   private _selectedIndex = 0;
   private _hideLeft = false;
@@ -92,40 +92,17 @@ export class ImageRecorder {
         const blob = await new Promise<Blob>(resolve =>
           this.viewer.toBlob(blob => resolve(blob!))
         );
-        const { name } = await fetch(
-          'https://content.dropboxapi.com/2/files/upload',
-          {
-            body: blob,
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.DROPBOX_ACCESS_TOKEN}`,
-              'Content-Type': 'application/octet-stream',
-              'Dropbox-API-Arg': JSON.stringify({
-                path: `/${process.env.DROPBOX_FOLDER_NAME}/image.png`,
-                autorename: true
-              })
-            }
-          }
-        ).then(
+
+        const { name } = await uploadImage(blob).then(
           async res =>
             res.ok ? res.json() : Promise.reject(new Error(await res.text()))
         );
-        const { link } = await fetch(
-          'https://api.dropboxapi.com/2/files/get_temporary_link',
-          {
-            body: JSON.stringify({
-              path: `/${process.env.DROPBOX_FOLDER_NAME}/${name}`
-            }),
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${process.env.DROPBOX_ACCESS_TOKEN}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        ).then(
+
+        const { link } = await getTemporaryLink(name).then(
           async res =>
             res.ok ? res.json() : Promise.reject(new Error(await res.text()))
         );
+
         this.qrCode.makeCode(link);
         this.modal.classList.add('display-qrcode');
       } catch (e) {
