@@ -14,7 +14,7 @@
 
     <header class="header">
 
-      <a class="show-records disabled" href="#">タタカイノキロク</a>
+      <a class="show-records" href="#">タタカイノキロク</a>
       <div class="settings header-button">Settings</div>
 
     </header>
@@ -82,8 +82,9 @@
       <select class="robot-name"></select>
     </div>
 
-    <div class="modal-settings">
-      <div class="modal-settings-content">
+    <div class="modal-container">
+
+      <div class="modal-content modal-settings-content">
 
         <h5>テーマ</h5>
         <div class="theme-toggle">
@@ -137,26 +138,30 @@
         </p>
 
       </div>
-    </div>
 
-  </div>
+      <div class="modal-content modal-recorded-images">
 
-  <div class="overlay hidden">
-    <div class="modal">
-      <button class="previous-image" type="button">&lt;</button>
-      <button class="next-image" type="button">&gt;</button>
-      <div class="modal-footer">
-        <button class="toggle-left-image">Left</button>
-        <button class="share-image">
-          Share
-          <div class="loading-ring"></div>
-        </button>
-        <button class="toggle-right-image">Right</button>
-        <button class="close-qrcode">Back</button>
+        <button class="previous-image" type="button">&lt;</button>
+        <button class="next-image" type="button">&gt;</button>
+
+        <div class="modal-footer">
+          <button class="toggle-left-image">Left</button>
+          <button class="share-image">
+            Share
+            <div class="loading-ring"></div>
+          </button>
+          <button class="toggle-right-image">Right</button>
+          <button class="close-qrcode">Back</button>
+        </div>
+
+        <canvas class="recorded-image-viewer" width="640" height="480"></canvas>
+
+        <div class="image-qrcode"></div>
+
       </div>
-      <canvas class="recorded-image-viewer" width="576" height="324"></canvas>
-      <div class="image-qrcode"></div>
+
     </div>
+
   </div>
 
   <script src="./pairplay.ts"></script>

@@ -197,7 +197,7 @@ main {
   border-color: white;
 }
 
-.modal-settings {
+.modal-container {
   position: absolute;
   top: 0;
   left: 0;
@@ -207,14 +207,13 @@ main {
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  /* display: none; */
 }
 
-.modal-settings.active {
+.modal-container.active {
   pointer-events: auto;
 }
 
-.modal-settings::before {
+.modal-container::before {
   content: '';
   cursor: pointer;
   position: absolute;
@@ -228,33 +227,41 @@ main {
   transition: opacity 150ms linear;
 }
 
-.modal-settings.active::before {
-  opacity: 0.3;
+.modal-container.active::before {
+  opacity: 0.85;
+}
+
+.modal-content {
+  position: relative;
+  visibility: hidden;
+  transform: visibility 150ms linear;
 }
 
 .modal-settings-content {
-  position: relative;
+  position: absolute;
+  background: var(--bg-color);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border: 2px solid white;
+  border-radius: 4px;
   width: 80%;
   height: 80%;
   max-width: 480px;
-  background: var(--bg-color);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  border: 1px solid white;
-  border-radius: 4px;
-  visibility: hidden;
-  transform: visibility 150ms linear;
   display: flex;
   flex-direction: column;
-  align-items: center
+  align-items: center;
+  padding: 1rem;
 }
 
-.modal-settings h5 {
+.modal-settings-content h5 {
   margin-top: 3rem;
 }
 
-.active .modal-settings-content {
+.modal-recorded-images {
+  position: absolute;
+}
+
+.modal-settings-content.active, .modal-recorded-images.active {
   visibility: visible;
-  padding: 1rem;
 }
 
 .records-container a {
@@ -275,4 +282,89 @@ main {
   pointer-events: none;
   cursor: default;
   opacity: 0.6;
+}
+
+.image-qrcode {
+  display: none;
+  width: 256px;
+  height: 256px;
+  background-color: #fff;
+  padding: 1rem 0;
+  margin: 0 4rem;
+}
+
+.modal-recorded-images .close-qrcode {
+  display: none;
+}
+
+.modal-recorded-images.display-qrcode {
+  background: white;
+}
+
+.display-qrcode .image-qrcode {
+  display: flex;
+  justify-content: center;
+  align-items:center;
+}
+
+.display-qrcode .previous-image,
+.display-qrcode .next-image,
+.display-qrcode .toggle-left-image,
+.display-qrcode .toggle-right-image,
+.display-qrcode .share-image,
+.display-qrcode .recorded-image-viewer {
+  display: none;
+}
+.display-qrcode .close-qrcode {
+  display: block;
+}
+
+.hide-left-image .toggle-left-image {
+  text-decoration: line-through;
+}
+.hide-right-image .toggle-right-image {
+  text-decoration: line-through;
+}
+
+.previous-image, .next-image {
+  color: white;
+  font-size: 3rem;
+  font-weight: bold;
+  position: absolute;
+  top: calc(50% - 2.5rem);
+}
+
+.previous-image:hover,
+.previous-image:focus,
+.next-image:hover,
+.next-image:focus {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.previous-image {
+  left: -10%;
+}
+.next-image {
+  right: -10%;
+}
+
+.modal-footer {
+  position: absolute;
+  bottom: -3rem;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.modal-footer button {
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+  flex: 1;
+  margin: 0 0.5rem;
+  color: white;
+}
+
+.modal-footer button:active {
+  background-color: rgba(255, 255, 255, 0.5);
 }
