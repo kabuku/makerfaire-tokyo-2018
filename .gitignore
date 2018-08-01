@@ -37,3 +37,5 @@ robot/esp8266_client/setting.h
 !.gitkeep
 
 .env
+
+.gh-pages/
