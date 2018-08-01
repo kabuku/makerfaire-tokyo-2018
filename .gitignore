@@ -38,4 +38,4 @@ robot/esp8266_client/setting.h
 
 .env
 
-.gh-pages/
+gh-pages/
