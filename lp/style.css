@@ -49,7 +49,7 @@ p.small {
 ul {
   padding-left: 1rem;
   margin: 0;
-  list-style: none;
+  list-style: inside circle;
 }
 
 li {
@@ -70,6 +70,14 @@ h1, h2, h3 {
   font-weight: 300;
 }
 
+h4 {
+  margin-left: 4px;
+}
+
+h5 {
+  margin-left: 12px;
+}
+
 #intro {
   border: 0;
 }
@@ -78,8 +86,12 @@ h1, h2, h3 {
   font-size: 2rem;
 }
 
-.small {
-  font-size: 11px;
+h4.small {
+  font-size: 16px;
+}
+
+h5.small {
+  font-size: 14px;
 }
 
 .video-container {
