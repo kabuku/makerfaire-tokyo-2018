@@ -4,7 +4,7 @@ import { distinctUntilChanged } from 'rxjs/operators';
 
 export const enum Command {
   Backward = 0,
-  Neutral = 1,
+  Rotate = 1,
   Forward = 2
 }
 

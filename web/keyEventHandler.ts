@@ -22,25 +22,25 @@ export async function handleKeyEvent(
       map(({ key }: KeyboardEvent) => {
         switch (key) {
           case 'ArrowUp':
-            return [Command.Forward, Command.Forward];
+            return Command.Forward;
           case 'ArrowLeft':
-            return [Command.Neutral, Command.Forward];
           case 'ArrowRight':
-            return [Command.Forward, Command.Neutral];
+            return Command.Rotate;
           case 'ArrowDown':
-            return [Command.Backward, Command.Backward];
+            return Command.Backward;
         }
       }),
-      filter(Boolean),
+      filter(command => typeof command === 'number'),
+      map(command => velocityTuner.getVelocity(command!)),
       tap(() => (controlling = true))
     ),
     fromEvent(document, 'keyup').pipe(
       filter(() => controlling),
-      map(() => [Command.Neutral, Command.Neutral]),
+      map(() => [0, 0]),
       tap(() => (controlling = false))
     )
-  ).subscribe(([leftCommand, rightCommand]) => {
-    left.setVelocity(velocityTuner.getVelocity('left', leftCommand));
-    right.setVelocity(velocityTuner.getVelocity('right', rightCommand));
+  ).subscribe(([leftVelocity, rightVelocity]) => {
+    left.setVelocity(leftVelocity);
+    right.setVelocity(rightVelocity);
   });
 }

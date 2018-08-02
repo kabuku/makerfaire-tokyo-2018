@@ -113,22 +113,22 @@ const setupCommandControl = (
       throw new Error('camera side is invalid.');
   }
 
-  const neutralCount = document.querySelector(`${side} .neutral .count`)!;
+  const rotateCount = document.querySelector(`${side} .rotate .count`)!;
   const forwardCount = document.querySelector(`${side} .forward .count`)!;
   const backwardCount = document.querySelector(`${side} .backward .count`)!;
 
-  classifier.exampleCounts$.subscribe(([bw, ne, fw]) => {
+  classifier.exampleCounts$.subscribe(([bw, ro, fw]) => {
     backwardCount.textContent = `${bw}`;
-    neutralCount.textContent = `${ne}`;
+    rotateCount.textContent = `${ro}`;
     forwardCount.textContent = `${fw}`;
   });
 
-  const neutralButton = document.querySelector(`${side} .neutral button`)!;
+  const rotateButton = document.querySelector(`${side} .rotate button`)!;
   const forwardButton = document.querySelector(`${side} .forward button`)!;
   const backwardButton = document.querySelector(`${side} .backward button`)!;
 
-  const neutralImage = document.querySelector(
-    `${side} .neutral img`
+  const rotateImage = document.querySelector(
+    `${side} .rotate img`
   )! as HTMLImageElement;
   const forwardImage = document.querySelector(
     `${side} .forward img`
@@ -137,8 +137,8 @@ const setupCommandControl = (
     `${side} .backward img`
   )! as HTMLImageElement;
 
-  const neutralPress$ = createPressStream(neutralButton).pipe(
-    mapTo(Command.Neutral)
+  const rotatePress$ = createPressStream(rotateButton).pipe(
+    mapTo(Command.Rotate)
   );
   const forwardPress$ = createPressStream(forwardButton).pipe(
     mapTo(Command.Forward)
@@ -147,14 +147,14 @@ const setupCommandControl = (
     mapTo(Command.Backward)
   );
 
-  merge(backPress$, neutralPress$, forwardPress$)
+  merge(backPress$, rotatePress$, forwardPress$)
     .pipe(
       map(label => {
         const image = captureImageWithCanvas(cameraSide, destImage);
         const example = mobilenet.predict(canvasToTensor(image));
         const originalButton =
-          label === Command.Neutral
-            ? neutralImage
+          label === Command.Rotate
+            ? rotateImage
             : label === Command.Forward
               ? forwardImage
               : backwardImage;
@@ -166,7 +166,7 @@ const setupCommandControl = (
       classifier.addExample(label, example);
     });
 
-  const addExampleButtons = [backwardButton, neutralButton, forwardButton];
+  const addExampleButtons = [backwardButton, rotateButton, forwardButton];
 
   classifier.predictionResult$.subscribe(result => {
     addExampleButtons.forEach(b => b.removeAttribute('predicted'));
@@ -570,29 +570,30 @@ const setupUI = async () => {
   const velocityTuner = new VelocityTuner(robotName);
   await handleKeyEvent(robotName, velocityTuner);
 
-  classifierLeft.predictionResult$
-    .pipe(
-      debounceTime(150),
-      distinctUntilChanged()
+  combineLatest(
+    [classifierLeft, classifierRight].map(({ predictionResult$ }) =>
+      predictionResult$.pipe(debounceTime(150))
     )
-    .subscribe(command => {
-      if (command !== null) {
-        robotControllerLeft.setVelocity(
-          velocityTuner.getVelocity('left', command)
-        );
-      }
-    });
-  classifierRight.predictionResult$
+  )
     .pipe(
-      debounceTime(150),
-      distinctUntilChanged()
+      map(
+        ([leftCommand, rightCommand]) =>
+          leftCommand !== null &&
+          rightCommand !== null &&
+          (leftCommand === rightCommand
+            ? velocityTuner.getVelocity(leftCommand)
+            : [0, 0])
+      ),
+      filter(Boolean),
+      distinctUntilChanged(
+        ([left1, right1], [left2, right2]) =>
+          left1 === left2 && right1 === right2
+      )
     )
-    .subscribe(command => {
-      if (command !== null) {
-        robotControllerRight.setVelocity(
-          velocityTuner.getVelocity('right', command)
-        );
-      }
+    .subscribe(([leftVelocity, rightVelocity]) => {
+      console.log(leftVelocity, rightVelocity);
+      robotControllerLeft.setVelocity(leftVelocity);
+      robotControllerRight.setVelocity(rightVelocity);
     });
 
   await setupUI();

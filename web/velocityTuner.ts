@@ -1,5 +1,5 @@
 import { RobotName } from './robot';
-import { fromEvent, BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, fromEvent } from 'rxjs';
 import { Command } from './classifier';
 import { map } from 'rxjs/operators';
 
@@ -48,19 +48,18 @@ export class VelocityTuner {
     });
   }
 
-  getVelocity(wheel: 'left' | 'right', command: Command): number {
-    if (command === Command.Neutral) {
-      return 0;
-    }
+  getVelocity(command: Command): [number, number] {
     const tuning =
       JSON.parse(
         localStorage.getItem(TUNING_KEY_PREFIX + this.robotName$.getValue())!
       ) || DEFAULT_VALUE;
-    const velocities = tuning[wheel];
-    if (command === Command.Forward) {
-      return velocities.forward;
-    } else {
-      return velocities.backward;
+    switch (command) {
+      case Command.Forward:
+        return [tuning.left.forward, tuning.right.forward];
+      case Command.Rotate:
+        return [tuning.left.forward, tuning.right.backward];
+      case Command.Backward:
+        return [tuning.left.backward, tuning.right.backward];
     }
   }
 }
