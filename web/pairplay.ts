@@ -28,7 +28,8 @@ import {
   setupCamera,
   capture,
   Rect,
-  captureWithCanvas
+  captureWithCanvas,
+  canvasToTensor
 } from './camera';
 import { Command, Classifier, ModelStatus, ControlStatus } from './classifier';
 import { loadMobilenet, createPressStream } from './helper';
@@ -70,7 +71,7 @@ const setEnable = (elem: Element, enabled: boolean) => {
 const captureImageWithCanvas = (
   cameraSide: CameraSide,
   destImage: HTMLCanvasElement
-): tf.Tensor => {
+): HTMLCanvasElement => {
   let side: CameraSide;
   let video: HTMLVideoElement;
   let cropArea: Rect;
@@ -126,6 +127,16 @@ const setupCommandControl = (
   const forwardButton = document.querySelector(`${side} .forward button`)!;
   const backwardButton = document.querySelector(`${side} .backward button`)!;
 
+  const neutralImage = document.querySelector(
+    `${side} .neutral img`
+  )! as HTMLImageElement;
+  const forwardImage = document.querySelector(
+    `${side} .forward img`
+  )! as HTMLImageElement;
+  const backwardImage = document.querySelector(
+    `${side} .backward img`
+  )! as HTMLImageElement;
+
   const neutralPress$ = createPressStream(neutralButton).pipe(
     mapTo(Command.Neutral)
   );
@@ -140,7 +151,14 @@ const setupCommandControl = (
     .pipe(
       map(label => {
         const image = captureImageWithCanvas(cameraSide, destImage);
-        const example = mobilenet.predict(image);
+        const example = mobilenet.predict(canvasToTensor(image));
+        const originalButton =
+          label === Command.Neutral
+            ? neutralImage
+            : label === Command.Forward
+              ? forwardImage
+              : backwardImage;
+        originalButton.src = image.toDataURL();
         return { label, example };
       })
     )
@@ -284,7 +302,7 @@ async function predict(
 ): Promise<void> {
   const srcRect = cropAreaSubject.value || fullArea;
   const image = captureWithCanvas(destImage, video, side, srcRect);
-  await classifier.predict(image, mobilenet);
+  await classifier.predict(canvasToTensor(image), mobilenet);
 }
 
 const changeTheme = (isDark: boolean) => {
