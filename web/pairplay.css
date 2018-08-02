@@ -8,10 +8,6 @@
 }
 
 #root {
-  --predicted-button-mask: rgba(0, 0, 0, 0.3);
-}
-
-#root.dark {
   --predicted-button-mask: rgba(255, 255, 255, 0.5);
 }
 
@@ -134,10 +130,18 @@ main {
   margin: 4px 0;
 }
 
-.command-control button {
+.command-control img {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform: scaleX(-1);
+}
+
+.command-control button, .command-control img {
   width: 100%;
   height: 100%;
   font-size: 2rem;
+  position: absolute;
 }
 
 .command-control button[predicted] {

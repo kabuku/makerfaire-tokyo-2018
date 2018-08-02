@@ -122,9 +122,13 @@ export const captureWithCanvas = (
   videoElem: HTMLVideoElement,
   cameraSide: CameraSide,
   srcRect: Rect
-): tf.Tensor => {
+): HTMLCanvasElement => {
   drawToCanvas(canvas, videoElem, cameraSide, srcRect);
-  return tf.tidy(() => {
+  return canvas;
+};
+
+export const canvasToTensor = (canvas: HTMLCanvasElement): tf.Tensor =>
+  tf.tidy(() => {
     const pixels = tf.fromPixels(canvas);
     const expanded = pixels.expandDims();
     return expanded
@@ -132,7 +136,6 @@ export const captureWithCanvas = (
       .div(tf.scalar(127))
       .sub(tf.scalar(1));
   });
-};
 
 function setupSelector(
   selector: HTMLSelectElement,
