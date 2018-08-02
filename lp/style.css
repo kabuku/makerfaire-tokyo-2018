@@ -92,6 +92,7 @@ h4.small {
 
 h5.small {
   font-size: 14px;
+  color: #777;
 }
 
 .video-container {
@@ -115,7 +116,9 @@ h5.small {
 }
 
 .caption {
-  margin: 12px 0 0;
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 0;
   color: #777;
 }
 
