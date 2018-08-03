@@ -268,21 +268,12 @@ main {
   visibility: visible;
 }
 
-.records-container a {
-  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
-}
-
 .show-records {
   color: var(--main-color);
   caret-color: var(--main-color);
 }
 
-.clear-records {
-  color: var(--accent-color);
-  caret-color: var(--accent-color);
-}
-
-.show-records.disabled, .clear-records.disabled {
+.show-records.disabled {
   pointer-events: none;
   cursor: default;
   opacity: 0.6;

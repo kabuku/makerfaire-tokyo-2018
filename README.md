@@ -27,14 +27,13 @@ $ npm run mqtt # run MQTT server on Docker
 $ npx mqtt sub -t 'nobunaga/left' -h 'localhost'
 ```
 
-## Dropbox との連携
+## Google Cloud Storage との連携
 
-プレイ画像を共有する機能を有効にするには、 Dropbox との連携が必要です。
-https://www.dropbox.com/developers/apps からアプリを作成し、プロジェクトの直下に `.env` というファイルを作成して以下のような内容を記載してください。 
+プレイ画像を共有する機能を有効にするには、 Google Cloud Storage との連携が必要です。
+GCS でバケットを作成したら、本プロジェクトの直下に `.env` というファイルを作成して以下のような内容を記載してください。 
 
 ```
-DROPBOX_ACCESS_TOKEN={{ アプリのアクセストークン }}
-DROPBOX_FOLDER_NAME={{ プレイ画像を保存するフォルダ }}
+GCS_BUCKET_NAME={{ バケット名 }}
 ```
 
-この機能では、 Dropbox API により、保存したプレイ画像に 4 時間だけアクセス可能な URL が生成され、それが QR コードとして画面上に表示されます。
+また、 https://cloud.google.com/docs/authentication/api-keys の手順にしたがってサービスアカウントの API キーを生成し、生成された JSON を本プロジェクトの直下に `google-api-key.json` という名前で保存してください。

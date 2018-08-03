@@ -1,27 +1,18 @@
 import { Subject, fromEvent } from 'rxjs';
 import { throttleTime } from 'rxjs/operators';
 
-import { uploadImage, getTemporaryLink } from './api';
+import { uploadImage } from './api';
 
+const gifshot = require('gifshot');
 const QRCode = require('qrcodejs2');
 
 export class ImageRecorder {
   readonly images$ = new Subject<[HTMLCanvasElement, HTMLCanvasElement]>();
-  private _recordedImages: ReadonlyArray<[string] | [string, string]> = [];
-  private selectedIndex = 0;
+  recordedImages: ReadonlyArray<[string] | [string, string]> = [];
   private _hideLeft = false;
   private _hideRight = false;
 
   private readonly modal = document.querySelector('.modal-recorded-images')!;
-  private readonly clearRecordsButton = document.querySelector(
-    '.clear-records'
-  )!;
-  private readonly previousImageButton = document.querySelector(
-    '.previous-image'
-  )! as HTMLButtonElement;
-  private readonly nextImageButton = document.querySelector(
-    '.next-image'
-  )! as HTMLButtonElement;
   private readonly toggleLeftButton = document.querySelector(
     '.toggle-left-image'
   );
@@ -32,41 +23,20 @@ export class ImageRecorder {
   private readonly closeQRCodeButton = document.querySelector('.close-qrcode')!;
   private readonly viewer = document.querySelector(
     '.recorded-image-viewer'
-  )! as HTMLCanvasElement;
+  )! as HTMLImageElement;
+  private readonly imageGenerator = document.createElement('canvas');
 
   private readonly qrCode = new QRCode(document.querySelector('.image-qrcode'));
 
   constructor(private readonly imageSize: number) {
+    this.imageGenerator.width = 640;
+    this.imageGenerator.height = 480;
     // record image every 10 seconds
     this.images$.pipe(throttleTime(10000)).subscribe(images => {
       this.recordedImages = [
         ...this.recordedImages,
         images.map(image => image.toDataURL()) as [string] | [string, string]
       ];
-    });
-
-    // clear recorded images
-    fromEvent(this.clearRecordsButton, 'click').subscribe(e => {
-      e.preventDefault();
-      this.recordedImages = [];
-    });
-
-    // go back and forth on modal
-    fromEvent(this.previousImageButton, 'click').subscribe(() => {
-      if (this.selectedIndex - 1 < 0) {
-        this.selectedIndex = this.recordedImages.length - 1;
-      } else {
-        this.selectedIndex -= 1;
-      }
-      this.writeImageOnViewer();
-    });
-    fromEvent(this.nextImageButton, 'click').subscribe(() => {
-      if (this.selectedIndex + 1 >= this.recordedImages.length) {
-        this.selectedIndex = 0;
-      } else {
-        this.selectedIndex += 1;
-      }
-      this.writeImageOnViewer();
     });
 
     // toggle display state of images
@@ -83,22 +53,21 @@ export class ImageRecorder {
     fromEvent(this.shareButton, 'click').subscribe(async () => {
       this.shareButton.classList.add('loading');
       try {
-        const blob = await new Promise<Blob>(resolve =>
-          this.viewer.toBlob(blob => resolve(blob!))
-        );
-
-        const { name } = await uploadImage(blob).then(
+        const { url, uploaded } = await uploadImage(
+          this.viewer.src.split(',')[1]
+        ).then(
           async res =>
             res.ok ? res.json() : Promise.reject(new Error(await res.text()))
         );
 
-        const { link } = await getTemporaryLink(name).then(
-          async res =>
-            res.ok ? res.json() : Promise.reject(new Error(await res.text()))
-        );
-
-        this.qrCode.makeCode(link);
+        this.qrCode.makeCode(url);
         this.modal.classList.add('display-qrcode');
+
+        if (!uploaded) {
+          alert(
+            'サーバーへのアップロードに失敗したため、このURLで後ほどファイルの取得を試してください'
+          );
+        }
       } catch (e) {
         console.error(e);
         alert('Failed! Open console for detail.');
@@ -117,30 +86,7 @@ export class ImageRecorder {
   }
 
   displayImages() {
-    if (0 < this.recordedImages.length) {
-      this.selectedIndex = 0;
-      this.writeImageOnViewer();
-    }
-  }
-
-  private get recordedImages(): ReadonlyArray<[string] | [string, string]> {
-    return this._recordedImages;
-  }
-
-  private set recordedImages(
-    recordedImages: ReadonlyArray<[string] | [string, string]>
-  ) {
-    this.toggleRecordButtonsDisabled(recordedImages);
-    this._recordedImages = recordedImages;
-  }
-
-  private toggleRecordButtonsDisabled(
-    recordedImages: ReadonlyArray<[string] | [string, string]>
-  ): void {
-    this.clearRecordsButton.classList.toggle(
-      'disabled',
-      recordedImages.length === 0
-    );
+    this.writeImageOnViewer().catch(err => console.error(err));
   }
 
   private get hideLeft(): boolean {
@@ -153,7 +99,7 @@ export class ImageRecorder {
     }
     this.modal.classList.toggle('hide-left-image', hideLeft);
     this._hideLeft = hideLeft;
-    this.writeImageOnViewer();
+    this.writeImageOnViewer().catch(err => console.error(err));
   }
 
   private get hideRight(): boolean {
@@ -166,36 +112,46 @@ export class ImageRecorder {
     }
     this.modal.classList.toggle('hide-right-image', hideRight);
     this._hideRight = hideRight;
-    this.writeImageOnViewer();
+    this.writeImageOnViewer().catch(err => console.error(err));
   }
 
-  private writeImageOnViewer() {
+  private async writeImageOnViewer() {
+    this.viewer.src = '';
+    if (this.recordedImages.length === 0) {
+      return;
+    }
     const root = document.querySelector('#root')!;
     const style = getComputedStyle(root);
+    const generatedImages = [];
 
-    const images = this.recordedImages[this.selectedIndex];
-    if (images.length === 1 || this.hideRight) {
-      this.writeSingleImageOnViewer(images[0], style).catch(e =>
-        console.error(e)
-      );
+    if (this.recordedImages[0].length === 1 || this.hideRight) {
+      for (const [image] of this.recordedImages) {
+        generatedImages.push(await this.generateImagesForSingle(image, style));
+      }
     } else if (this.hideLeft) {
-      this.writeSingleImageOnViewer(images[1], style).catch(e =>
-        console.error(e)
-      );
+      for (const images of this.recordedImages as [string, string][]) {
+        generatedImages.push(
+          await this.generateImagesForSingle(images[1], style)
+        );
+      }
     } else {
-      this.writeTwoImagesOnViewer(images[0], images[1], style).catch(e =>
-        console.error(e)
-      );
+      for (const [left, right] of this.recordedImages as [string, string][]) {
+        generatedImages.push(
+          await this.generateImagesForDouble(left, right, style)
+        );
+      }
     }
+
+    this.viewer.src = await this.createGif(generatedImages);
   }
 
-  private async writeSingleImageOnViewer(
+  private async generateImagesForSingle(
     imageSrc: string,
     style: CSSStyleDeclaration
-  ) {
+  ): Promise<string> {
     const borderColor = style.getPropertyValue('--camerabox-border-color');
 
-    const ctx = this.viewer.getContext('2d')!;
+    const ctx = this.imageGenerator.getContext('2d')!;
     this.resetBackground(ctx, style);
 
     const centerX = ctx.canvas.width / 2.0;
@@ -221,14 +177,15 @@ export class ImageRecorder {
 
     ctx.strokeStyle = 'transparent';
     ctx.shadowColor = 'transparent';
+    return this.imageGenerator.toDataURL();
   }
 
-  private async writeTwoImagesOnViewer(
+  private async generateImagesForDouble(
     leftSrc: string,
     rightSrc: string,
     style: CSSStyleDeclaration
-  ) {
-    const ctx = this.viewer.getContext('2d')!;
+  ): Promise<string> {
+    const ctx = this.imageGenerator.getContext('2d')!;
     const borderColor = style.getPropertyValue('--camerabox-border-color');
 
     this.resetBackground(ctx, style);
@@ -272,6 +229,21 @@ export class ImageRecorder {
 
     ctx.strokeStyle = 'transparent';
     ctx.shadowColor = 'transparent';
+    return this.imageGenerator.toDataURL();
+  }
+
+  private createGif(images: string[]): Promise<string> {
+    return new Promise((resolve, reject) =>
+      gifshot.createGIF(
+        {
+          images,
+          gifWidth: this.imageGenerator.width,
+          gifHeight: this.imageGenerator.height
+        },
+        ({ error, image }: { error: any; image: string }) =>
+          error ? reject(error) : resolve(image)
+      )
+    );
   }
 
   private resetBackground(
@@ -283,27 +255,27 @@ export class ImageRecorder {
     const mainColor = style.getPropertyValue('--main-color');
     const accentColor = style.getPropertyValue('--accent-color');
 
-    ctx.clearRect(0, 0, this.viewer.width, this.viewer.height);
+    ctx.clearRect(0, 0, this.imageGenerator.width, this.imageGenerator.height);
 
     ctx.beginPath();
     ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, this.viewer.width, this.viewer.height);
+    ctx.fillRect(0, 0, this.imageGenerator.width, this.imageGenerator.height);
 
     let x = 0;
-    while (x < this.viewer.width) {
+    while (x < this.imageGenerator.width) {
       const gradient = ctx.createLinearGradient((x += 10), 0, 1, 0);
       gradient.addColorStop(0, gridColor);
       gradient.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient;
-      ctx.fillRect(x, 0, 1, this.viewer.height);
+      ctx.fillRect(x, 0, 1, this.imageGenerator.height);
     }
     let y = 0;
-    while (y < this.viewer.height) {
+    while (y < this.imageGenerator.height) {
       const gradient = ctx.createLinearGradient(0, (y += 10), 0, 1);
       gradient.addColorStop(0, gridColor);
       gradient.addColorStop(1, 'transparent');
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, y, this.viewer.width, 1);
+      ctx.fillRect(0, y, this.imageGenerator.width, 1);
     }
 
     ctx.font = '32px PixelMPlus';
@@ -311,12 +283,16 @@ export class ImageRecorder {
     ctx.shadowBlur = 8;
     ctx.shadowColor = ctx.fillStyle;
     ctx.textAlign = 'center';
-    ctx.fillText('ガンメンタイセン', this.viewer.width / 2, 60);
+    ctx.fillText('ガンメンタイセン', this.imageGenerator.width / 2, 60);
 
     ctx.font = '16px PixelMPlus';
     ctx.fillStyle = accentColor;
     ctx.shadowColor = ctx.fillStyle;
-    ctx.fillText('カブク @Maker Faire Tokyo 2018', this.viewer.width / 2, 96);
+    ctx.fillText(
+      'カブク @Maker Faire Tokyo 2018',
+      this.imageGenerator.width / 2,
+      96
+    );
 
     ctx.fillStyle = 'transparent';
     ctx.shadowColor = 'transparent';
