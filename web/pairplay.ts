@@ -50,8 +50,11 @@ const fullArea = {
 import { ImageRecorder } from './imageRecorder';
 import { VelocityTuner } from './velocityTuner';
 import { handleKeyEvent } from './keyEventHandler';
+import { getMqttClient } from './mqttClient';
+import { MqttClient } from 'mqtt';
 
 let mobilenet: tf.Model;
+let mqttClient: MqttClient;
 let robotControllerLeft: RobotController;
 let robotControllerRight: RobotController;
 let classifierLeft: Classifier;
@@ -557,18 +560,20 @@ const setupUI = async () => {
   const leftTopic$ = robotName.pipe(map(name => `${name}/left`));
   const rightTopic$ = robotName.pipe(map(name => `${name}/right`));
 
-  [mobilenet, robotControllerLeft, robotControllerRight] = await Promise.all([
+  [mobilenet, mqttClient] = await Promise.all([
     loadMobilenet(),
-    RobotController.createInstance(leftTopic$),
-    RobotController.createInstance(rightTopic$)
+    getMqttClient()
   ]);
+
+  robotControllerLeft = new RobotController(mqttClient, leftTopic$);
+  robotControllerRight = new RobotController(mqttClient, rightTopic$);
 
   const easyMode = !!Number(new URL(location.href).searchParams.get('easy'));
   classifierLeft = new Classifier(easyMode);
   classifierRight = new Classifier(easyMode);
 
   const velocityTuner = new VelocityTuner(robotName);
-  await handleKeyEvent(robotName, velocityTuner);
+  handleKeyEvent(mqttClient, robotName, velocityTuner);
 
   classifierLeft.predictionResult$
     .pipe(
