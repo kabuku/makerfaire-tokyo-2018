@@ -22,7 +22,7 @@ import {
   filter
 } from 'rxjs/operators';
 
-import { RobotController, RobotName } from './robot';
+import { observeConnection, RobotController, RobotName } from './robot';
 import {
   CameraSide,
   setupCamera,
@@ -550,6 +550,7 @@ const setupUI = async () => {
     fragment.appendChild(option);
   });
   robotNameSelect.appendChild(fragment);
+  robotNameSelect.size = robotNameSelect.children.length;
 
   robotNameSelect.value = robotName.value;
 
@@ -574,6 +575,15 @@ const setupUI = async () => {
 
   const velocityTuner = new VelocityTuner(robotName);
   handleKeyEvent(mqttClient, robotName, velocityTuner);
+
+  observeConnection(mqttClient).subscribe(robots => {
+    for (const option of robotNameSelect.children) {
+      option.classList.toggle(
+        'connected',
+        robots.indexOf((option as HTMLOptionElement).value as RobotName) >= 0
+      );
+    }
+  });
 
   classifierLeft.predictionResult$
     .pipe(
