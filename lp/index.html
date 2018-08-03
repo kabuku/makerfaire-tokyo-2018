@@ -5,7 +5,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta property="og:title" content="Kabuku @Maker Faire Tokyo 2018">
+  <meta property="og:site_name" content="Kabuku @Maker Faire Tokyo 2018">
+  <meta property="og:url" content="https://kabuku.github.io/makerfaire-tokyo-2018/">
+  <meta property="og:type" content="website">
   <title>Kabuku @Maker Faire Tokyo 2018</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="preload" href="assets/font/NotoSansCJKjp-Regular.woff" as="font" type="font/woff">
+  <link rel="preload" href="assets/font/NotoSansCJKjp-Light.woff" as="font" type="font/woff">
   <link rel="stylesheet" href="style.css">
 </head>
 
@@ -18,13 +27,102 @@
     </header>
 
     <section>
-      <h3>作品紹介</h3>
-      <h4>ガンメンタイセン</h4>
+      <h3>作品紹介: ガンメンタイセン</h3>
+      <p class="small">By kabuku ものづくり部</p>
+
+      <p>Webカメラでロボットを動かして対戦するゲーム</p>
+
+      <div class="video-container">
+        <iframe width="560" height="315" src="https://www.youtube.com/embed/5QyP8cZR0ss?rel=0&amp;showinfo=0" frameborder="0" allow="autoplay; encrypted-media"
+          allowfullscreen>
+        </iframe>
+      </div>
     </section>
 
-    <footer>© 2018 Kabuku Inc.</footer>
-  </main>
+    <section>
+      <h4 class="small">Inspired by:</h4>
+      <div>
+        <ul>
+          <li>
+            <a href="https://storage.googleapis.com/tfjs-examples/webcam-transfer-learning/dist/index.html">Webcam Pacman</a>
+          </li>
+        </ul>
+      </div>
+    </section>
 
+    <section>
+      <h4 class="small">Things used in our project:</h4>
+      <div>
+        <ul>
+          <li>
+            <a href="https://js.tensorflow.org/">Tensorflow.js</a>
+          </li>
+          <li>
+            <a href="https://mosquitto.org/">Eclipse Mosquitto</a>
+          </li>
+        </ul>
+
+        <h5 class="small">Hardware components</h5>
+        <ul>
+          <li>
+            <a target="_blank" href="https://www.switch-science.com/catalog/3646/">Raspberry Pi Zero WH</a>
+          </li>
+          <li>
+            <a target="_blank" href="http://amzn.asia/9EHcd4n">PLANEX 11ac 433Mbps USB2.0対応高速無線LAN子機 GW-450D2</a>
+          </li>
+          <li>
+            <a target="_blank" href="http://amzn.asia/3V7imKQ">エスエスエーサービス [ USB microB(オス) ← A(オス) ] 端子部に挿し込む 小型 microUSBホスト(OTG)変換アダプタ SMCM-OTG</a>
+          </li>
+          <li>
+            <a target="_blank" href="http://akizukidenshi.com/catalog/g/gM-13206/">360°連続回転サーボ（ローテーションサーボ）FS90R</a>
+          </li>
+          <li>
+            <a target="_blank" href="http://akizukidenshi.com/catalog/g/gP-02667/">電池ボックス　単3×3本　リード線</a>
+          </li>
+          <li>
+            <a target="_blank" href="http://amzn.asia/cJtV2hF">Beking MicroSDカード Class10 メモリカード Microsd クラス10 SDHC マイクロSDカード Androidスマートフォン デジカメ 超高速転送 (32GB)</a>
+          </li>
+          <li>
+            ロボットの筐体（3Dプリント）
+          </li>
+          <li>
+            ダイソーのモバイルバッテリーに含まれている昇圧回路
+          </li>
+          <li>
+            <a target="_blank" href="http://akizukidenshi.com/catalog/g/gP-13207/">タイヤ FS90R対応</a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h4 class="small">Making:</h4>
+      <div class="featured_images">
+        <figure>
+          <img src="./assets/image/featured001.jpg" alt="printing parts">
+          <p class="caption">ロボットの筐体を3Dプリント</p>
+        </figure>
+        <figure>
+          <img src="./assets/image/featured002.jpg" alt="">
+          <p class="caption">ロボット (ノブナガ)</p>
+        </figure>
+        <figure>
+          <img src="./assets/image/featured003.jpg" alt="">
+          <p class="caption">デモ風景</p>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h4 class="small">Source code:</h4>
+      <p>available
+        <a target="_blank" href="https://github.com/kabuku/makerfaire-tokyo-2018"> on GitHub</a>
+      </p>
+    </section>
+  </main>
+  <footer class="global-footer">
+    <span>© 2018 Kabuku Inc.</span>
+  </footer>
 </body>
 
 </html>
