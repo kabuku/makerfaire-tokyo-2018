@@ -150,25 +150,6 @@ const setupCommandControl = (
     mapTo(Command.Backward)
   );
 
-  merge(backPress$, neutralPress$, forwardPress$)
-    .pipe(
-      map(label => {
-        const image = captureImageWithCanvas(cameraSide, destImage);
-        const example = mobilenet.predict(canvasToTensor(image));
-        const originalButton =
-          label === Command.Neutral
-            ? neutralImage
-            : label === Command.Forward
-              ? forwardImage
-              : backwardImage;
-        originalButton.src = image.toDataURL();
-        return { label, example };
-      })
-    )
-    .subscribe(({ label, example }) => {
-      classifier.addExample(label, example);
-    });
-
   const addExampleButtons = [backwardButton, neutralButton, forwardButton];
 
   classifier.predictionResult$.subscribe(result => {
@@ -195,6 +176,22 @@ const setupCommandControl = (
         )
       )
     );
+
+  return {
+    trigger: merge(backPress$, neutralPress$, forwardPress$),
+    map: (label: Command) => {
+      const image = captureImageWithCanvas(cameraSide, destImage);
+      const example = mobilenet.predict(canvasToTensor(image));
+      const originalButton =
+        label === Command.Neutral
+          ? neutralImage
+          : label === Command.Forward
+            ? forwardImage
+            : backwardImage;
+      originalButton.src = image.toDataURL();
+      return { label, example };
+    }
+  };
 };
 
 const setupTrainButton = (classifier: Classifier, trainButton: HTMLElement) => {
@@ -445,8 +442,25 @@ const setupUI = async () => {
   setupCropSelector(cropSelectorLeft, CameraSide.Left);
   setupCropSelector(cropSelectorRight, CameraSide.Right);
 
-  setupCommandControl(CameraSide.Left, destImageLeft);
-  setupCommandControl(CameraSide.Right, destImageRight);
+  const { trigger: leftTrigger, map: leftMap } = setupCommandControl(
+    CameraSide.Left,
+    destImageLeft
+  );
+  const { trigger: rightTrigger, map: rightMap } = setupCommandControl(
+    CameraSide.Right,
+    destImageRight
+  );
+  merge(leftTrigger, rightTrigger)
+    .pipe(map(label => [leftMap(label), rightMap(label)]))
+    .subscribe(
+      ([
+        { label: leftLabel, example: leftExample },
+        { label: rightLabel, example: rightExample }
+      ]) => {
+        classifierLeft.addExample(leftLabel, leftExample);
+        classifierRight.addExample(rightLabel, rightExample);
+      }
+    );
 
   const trainLeftButton = document.querySelector('.train-left')! as HTMLElement;
   const trainRightButton = document.querySelector(
