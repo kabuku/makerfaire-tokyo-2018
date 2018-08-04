@@ -184,21 +184,25 @@ main {
 
 .robot-name {
   font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
-  font-size: 1.2rem;
   margin: 24px 0;
   padding: 0.5rem 0.5rem;
   width: 216px;
   background: rgba(0, 0, 0, 0.15);
-  color: var(--main-color);
   border-color: var(--main-color);
   border-width: 2px;
   border-style: solid;
+  border-radius: 5px;
+  height: 108px;
+}
+
+.robot-name option:checked {
+  font-size: 1.2rem;
+  color: var(--main-color);
   caret-color: var(--main-color);
 }
 
-.robot-name:focus {
-  background: rgba(83, 255, 226, 0.2);
-  border-color: white;
+.robot-name option:not(.connected) {
+  text-decoration: line-through;
 }
 
 .modal-container {
@@ -268,21 +272,12 @@ main {
   visibility: visible;
 }
 
-.records-container a {
-  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
-}
-
 .show-records {
   color: var(--main-color);
   caret-color: var(--main-color);
 }
 
-.clear-records {
-  color: var(--accent-color);
-  caret-color: var(--accent-color);
-}
-
-.show-records.disabled, .clear-records.disabled {
+.show-records.disabled {
   pointer-events: none;
   cursor: default;
   opacity: 0.6;

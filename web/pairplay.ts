@@ -1,42 +1,45 @@
 import * as tf from '@tensorflow/tfjs';
 import {
+  BehaviorSubject,
   combineLatest,
   fromEvent,
-  merge,
   interval,
-  BehaviorSubject,
+  merge,
   Observable
 } from 'rxjs';
 import {
-  map,
-  mapTo,
-  switchMap,
-  takeUntil,
   debounceTime,
   distinctUntilChanged,
-  tap,
-  shareReplay,
-  withLatestFrom,
+  filter,
+  map,
+  mapTo,
   scan,
+  shareReplay,
   startWith,
-  filter
+  switchMap,
+  takeUntil,
+  tap,
+  withLatestFrom
 } from 'rxjs/operators';
 
-import { RobotController, RobotName } from './robot';
+import { observeConnection, RobotController, RobotName } from './robot';
 import {
   CameraSide,
-  setupCamera,
+  canvasToTensor,
   capture,
-  Rect,
   captureWithCanvas,
-  canvasToTensor
+  Rect,
+  setupCamera
 } from './camera';
-import { Command, Classifier, ModelStatus, ControlStatus } from './classifier';
-import { loadMobilenet, createPressStream } from './helper';
+import { Classifier, Command, ControlStatus, ModelStatus } from './classifier';
+import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './pairplay.css';
 import { getCropArea } from './squareCrop';
+import { ImageRecorder } from './imageRecorder';
+import { VelocityTuner } from './velocityTuner';
+import { handleKeyEvent } from './keyEventHandler';
 
 const imageSize = 224;
 const cropAreaLeftSubject = new BehaviorSubject<Rect | null>(null);
@@ -47,11 +50,11 @@ const fullArea = {
   width: imageSize,
   height: imageSize
 };
-import { ImageRecorder } from './imageRecorder';
-import { VelocityTuner } from './velocityTuner';
-import { handleKeyEvent } from './keyEventHandler';
+import { getMqttClient } from './mqttClient';
+import { MqttClient } from 'mqtt';
 
 let mobilenet: tf.Model;
+let mqttClient: MqttClient;
 let robotControllerLeft: RobotController;
 let robotControllerRight: RobotController;
 let classifierLeft: Classifier;
@@ -461,8 +464,14 @@ const setupUI = async () => {
   const startClick$ = fromEvent(startPredictButton, 'click');
   const stopClick$ = fromEvent(stopPredictButton, 'click');
 
-  trainLeftClick$.subscribe(() => classifierLeft.startTraining());
-  trainRightClick$.subscribe(() => classifierRight.startTraining());
+  trainLeftClick$.subscribe(() => {
+    classifierLeft.startTraining().catch(err => console.error(err));
+    imageRecorder.recordedImages = [];
+  });
+  trainRightClick$.subscribe(() => {
+    classifierRight.startTraining().catch(err => console.error(err));
+    imageRecorder.recordedImages = [];
+  });
 
   combineLatest(
     classifierLeft.modelStatus$,
@@ -547,6 +556,7 @@ const setupUI = async () => {
     fragment.appendChild(option);
   });
   robotNameSelect.appendChild(fragment);
+  robotNameSelect.size = robotNameSelect.children.length;
 
   robotNameSelect.value = robotName.value;
 
@@ -557,18 +567,29 @@ const setupUI = async () => {
   const leftTopic$ = robotName.pipe(map(name => `${name}/left`));
   const rightTopic$ = robotName.pipe(map(name => `${name}/right`));
 
-  [mobilenet, robotControllerLeft, robotControllerRight] = await Promise.all([
+  [mobilenet, mqttClient] = await Promise.all([
     loadMobilenet(),
-    RobotController.createInstance(leftTopic$),
-    RobotController.createInstance(rightTopic$)
+    getMqttClient()
   ]);
+
+  robotControllerLeft = new RobotController(mqttClient, leftTopic$);
+  robotControllerRight = new RobotController(mqttClient, rightTopic$);
 
   const easyMode = !!Number(new URL(location.href).searchParams.get('easy'));
   classifierLeft = new Classifier(easyMode);
   classifierRight = new Classifier(easyMode);
 
   const velocityTuner = new VelocityTuner(robotName);
-  await handleKeyEvent(robotName, velocityTuner);
+  handleKeyEvent(mqttClient, robotName, velocityTuner);
+
+  observeConnection(mqttClient).subscribe(robots => {
+    for (const option of robotNameSelect.children) {
+      option.classList.toggle(
+        'connected',
+        robots.indexOf((option as HTMLOptionElement).value as RobotName) >= 0
+      );
+    }
+  });
 
   combineLatest(
     [classifierLeft, classifierRight].map(({ predictionResult$ }) =>

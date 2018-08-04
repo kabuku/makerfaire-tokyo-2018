@@ -120,35 +120,27 @@
             <tr>
               <td>前</td>
               <td>
-                <input type="number" data-target="left-forward">
+                <input type="number" data-target="left-forward" step="0.1">
               </td>
               <td>
-                <input type="number" data-target="right-forward">
+                <input type="number" data-target="right-forward" step="0.1">
               </td>
             </tr>
             <tr>
               <td>後</td>
               <td>
-                <input type="number" data-target="left-backward">
+                <input type="number" data-target="left-backward" step="0.1">
               </td>
               <td>
-                <input type="number" data-target="right-backward">
+                <input type="number" data-target="right-backward" step="0.1">
               </td>
             </tr>
           </tbody>
         </table>
 
-        <h5>その他</h5>
-        <p class="records-container">
-          <a class="clear-records disabled" href="#">タタカイノキロクを消去</a>
-        </p>
-
       </div>
 
       <div class="modal-content modal-recorded-images">
-
-        <button class="previous-image" type="button">&lt;</button>
-        <button class="next-image" type="button">&gt;</button>
 
         <div class="modal-footer">
           <button class="toggle-left-image">Left</button>
@@ -160,7 +152,7 @@
           <button class="close-qrcode">Back</button>
         </div>
 
-        <canvas class="recorded-image-viewer" width="640" height="480"></canvas>
+        <img class="recorded-image-viewer" width="640" height="480">
 
         <div class="image-qrcode"></div>
 

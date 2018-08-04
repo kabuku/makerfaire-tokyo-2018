@@ -3,23 +3,31 @@ import { fromEvent, merge, Observable } from 'rxjs';
 import { filter, map, tap } from 'rxjs/operators';
 import { VelocityTuner } from './velocityTuner';
 import { Command } from './classifier';
+import { MqttClient } from 'mqtt';
 
-export async function handleKeyEvent(
+export function handleKeyEvent(
+  mqttClient: MqttClient,
   robotName$: Observable<string>,
   velocityTuner: VelocityTuner
-): Promise<void> {
-  const [left, right] = await Promise.all(
-    ['left', 'right'].map(wheel =>
-      RobotController.createInstance(
+): void {
+  const [left, right] = ['left', 'right'].map(
+    wheel =>
+      new RobotController(
+        mqttClient,
         robotName$.pipe(map(robot => `${robot}/${wheel}`))
       )
-    )
   );
   let controlling = false;
   merge(
     fromEvent(document, 'keydown').pipe(
       filter(() => !controlling),
       map(({ key }: KeyboardEvent) => {
+        if (
+          document.activeElement instanceof HTMLInputElement ||
+          document.activeElement instanceof HTMLSelectElement
+        ) {
+          return undefined;
+        }
         switch (key) {
           case 'ArrowUp':
             return Command.Forward;

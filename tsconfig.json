@@ -3,7 +3,7 @@
     "esModuleInterop": true,
     "target": "es5",
     "importHelpers": true,
-    "module": "es2015",
+    "module": "commonjs",
     "moduleResolution": "node",
     "noEmitOnError": true,
     "downlevelIteration": true,
