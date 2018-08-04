@@ -42,3 +42,4 @@ robot/esp8266_client/setting.h
 google-api-key.json
 
 gh-pages/
+wpa_supplicant.conf

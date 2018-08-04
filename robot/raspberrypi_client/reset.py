@@ -15,7 +15,9 @@ def loop():
     while True:
         if GPIO.input(10) == GPIO.HIGH:
             logger.info("restart")
-            logger.info("result_code: {}".format(subprocess.call(["sudo", "systemctl", "restart", "mqttclient"])))
+            # logger.info("ifdown result_code: {}".format(subprocess.call(["sudo", "ifdown", "ra0"])))
+            # logger.info("ifup result_code: {}".format(subprocess.call(["sudo", "ifup", "ra0"])))
+            logger.info("systemctl restart mqttclient result_code: {}".format(subprocess.call(["sudo", "systemctl", "restart", "mqttclient"])))
             sleep(2)
         sleep(1)
 
