@@ -22,6 +22,12 @@ export function handleKeyEvent(
     fromEvent(document, 'keydown').pipe(
       filter(() => !controlling),
       map(({ key }: KeyboardEvent) => {
+        if (
+          document.activeElement instanceof HTMLInputElement ||
+          document.activeElement instanceof HTMLSelectElement
+        ) {
+          return undefined;
+        }
         switch (key) {
           case 'ArrowUp':
             return [Command.Forward, Command.Forward];
