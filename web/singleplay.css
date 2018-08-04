@@ -1,0 +1,405 @@
+#root {
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: 4rem 1fr;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+#root {
+  --command-button-mask-light: rgba(255, 255, 255, 0.5);
+  --command-button-mask-dark: rgba(0, 0, 0, 0.5);
+  --command-button-mask: var(--command-button-mask-light);
+}
+
+#root.dark {
+  --command-button-mask: var(--command-button-mask-dark);
+}
+
+.header {
+  width: 100%;
+  height: 4rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.header-button {
+  margin: 0 1rem;
+  cursor: pointer;
+}
+
+#camera-selector {
+  position: fixed;
+  left: 20px;
+}
+
+.theme-toggle {
+  cursor: pointer;
+  position: relative;
+}
+
+.theme-toggle input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.toggle-button-bg {
+  display: inline-block;
+  width: 2rem;
+  height: 0.9rem;
+  border-radius: 0.45rem;
+  background-color: rgba(35, 50, 185, 0.534);
+}
+
+.toggle-button-circle {
+  position: absolute;
+  top: -0.15rem;
+  left: 0.5rem;
+  width: 1.20rem;
+  height: 1.20rem;
+  border-radius: 50%;
+  background-color: rgb(31, 77, 141);
+  box-shadow: 0 0 0 rgba(21, 0, 210, 0.9);
+  transition: left 150ms linear;
+}
+
+.theme-checked .toggle-button-bg {
+  background-color: #FF0070;
+}
+
+.theme-checked .toggle-button-circle {
+  left: 1.75rem;
+  background-color: rgb(255, 255, 255);
+}
+
+.content {
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: auto;
+  justify-items: center;
+}
+
+main {
+  display: grid;
+  grid-template-rows: 280px 80px 100px;
+  grid-template-columns: 1fr 100px 280px 100px 1fr;
+  grid-template-areas: ". . webcamera command-controls performance" ". . message . ." ". . model-controls . .";
+  justify-content: center;
+  justify-items: center;
+  align-items: center;
+}
+
+#target-selector {
+  grid-area: target-selector;
+}
+
+#target-selector a {
+  display: inline-block;
+  background: transparent;
+  text-align: center;
+  font-size: 2rem;
+  color: var(--accent-color);
+  text-shadow: var(--accent-color) 0 0 4px;
+  width: 4rem;
+  padding: .5rem 1rem;
+  border: 4px solid currentColor;
+  opacity: 0.5;
+  transition-property: opacity, border-color, box-shadow, text-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in;
+}
+
+#target-selector a.active {
+  opacity: 1.0;
+  box-shadow: 0 0 50px rgba(255, 255, 255, .2),
+        inset 0 0 20px rgba(255, 255, 255, .2);
+}
+
+#target-selector a:nth-child(1) {
+  border-radius: 10px 0 0 10px;
+}
+
+#target-selector a:nth-child(2) {
+  border-radius: 0 10px 10px 0;
+}
+
+.webcam-box {
+  grid-area: webcamera;
+  position: relative;
+  width: var(--capture-size);
+  height: var(--capture-size);
+  overflow: hidden;
+}
+
+#webcam {
+  transform: scaleX(-1);
+  position: absolute;
+  top: 0;
+  left: -50%;
+}
+
+.left #webcam {
+  left: 0;
+  right: auto;
+}
+
+.right #webcam {
+  left: auto;
+  right: 0;
+}
+
+.crop-selector {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+}
+
+.command-controls {
+  grid-area: command-controls;
+  display: flex;
+  flex-direction: column;
+}
+
+.command-control {
+  --button-size: 74px;
+  position: relative;
+  width: var(--button-size);
+  height: var(--button-size);
+  margin: 4px 0;
+}
+
+.command-control button {
+  background-color: var(--command-button-mask);
+}
+
+.command-control img {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transform: scaleX(-1);
+}
+
+.command-control button,
+.command-control img {
+  width: 100%;
+  height: 100%;
+  font-size: 2rem;
+  position: absolute;
+}
+
+.command-control button[predicted] {
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.command-control .count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 2px;
+}
+
+.model-controls {
+  grid-area: model-controls;
+}
+
+.model-controls button {
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+}
+
+.log-message {
+  grid-area: message;
+}
+
+.robot-name {
+  font-family: 'PixelMPlus', 'Courier New', Courier, monospace;
+  margin: 24px 0;
+  padding: 0.5rem 0.5rem;
+  width: 216px;
+  background: rgba(0, 0, 0, 0.15);
+  border-color: var(--main-color);
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 5px;
+  height: 108px;
+}
+
+.robot-name option:checked {
+  font-size: 1.2rem;
+  color: var(--main-color);
+  caret-color: var(--main-color);
+}
+
+.robot-name option:not(.connected) {
+  text-decoration: line-through;
+}
+
+/* modal */
+
+.modal-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.modal-container.active {
+  pointer-events: auto;
+}
+
+.modal-container::before {
+  content: '';
+  cursor: pointer;
+  position: absolute;
+  display: block;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #131313;
+  opacity: 0;
+  transition: opacity 150ms linear;
+}
+
+.modal-container.active::before {
+  opacity: 0.85;
+}
+
+.modal-content {
+  position: relative;
+  visibility: hidden;
+  transform: visibility 150ms linear;
+}
+
+.modal-settings-content {
+  position: absolute;
+  background: var(--bg-color);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border: 2px solid white;
+  border-radius: 4px;
+  width: 80%;
+  height: 80%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+
+.modal-settings-content h5 {
+  margin-top: 3rem;
+}
+
+.modal-recorded-images {
+  position: absolute;
+}
+
+.modal-settings-content.active, .modal-recorded-images.active {
+  visibility: visible;
+}
+
+.show-records {
+  color: var(--main-color);
+  caret-color: var(--main-color);
+}
+
+.show-records.disabled {
+  pointer-events: none;
+  cursor: default;
+  opacity: 0.6;
+}
+
+.image-qrcode {
+  display: none;
+  width: 256px;
+  height: 256px;
+  background-color: #fff;
+  padding: 1rem 0;
+  margin: 0 4rem;
+}
+
+.modal-recorded-images .close-qrcode {
+  display: none;
+}
+
+.modal-recorded-images.display-qrcode {
+  background: white;
+}
+
+.display-qrcode .image-qrcode {
+  display: flex;
+  justify-content: center;
+  align-items:center;
+}
+
+.display-qrcode .previous-image,
+.display-qrcode .next-image,
+.display-qrcode .toggle-left-image,
+.display-qrcode .toggle-right-image,
+.display-qrcode .share-image,
+.display-qrcode .recorded-image-viewer {
+  display: none;
+}
+.display-qrcode .close-qrcode {
+  display: block;
+}
+
+.hide-left-image .toggle-left-image {
+  text-decoration: line-through;
+}
+.hide-right-image .toggle-right-image {
+  text-decoration: line-through;
+}
+
+.previous-image, .next-image {
+  color: white;
+  font-size: 3rem;
+  font-weight: bold;
+  position: absolute;
+  top: calc(50% - 2.5rem);
+}
+
+.previous-image:hover,
+.previous-image:focus,
+.next-image:hover,
+.next-image:focus {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.previous-image {
+  left: -10%;
+}
+.next-image {
+  right: -10%;
+}
+
+.modal-footer {
+  position: absolute;
+  bottom: -3rem;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.modal-footer button {
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+  flex: 1;
+  margin: 0 0.5rem;
+  color: white;
+}
+
+.modal-footer button:active {
+  background-color: rgba(255, 255, 255, 0.5);
+}
