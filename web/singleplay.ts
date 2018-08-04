@@ -223,28 +223,14 @@ const setupLogMessage = () => {
   });
 };
 
-const setupCropSelector = (
-  canvas: HTMLCanvasElement,
-  cameraSide: CameraSide
-) => {
-  let subject;
-  switch (cameraSide) {
-    case CameraSide.Left:
-      subject = cropAreaSubject;
-      break;
-    case CameraSide.Right:
-      subject = cropAreaSubject;
-      break;
-    default:
-      throw new Error(`camera side ${cameraSide} is invalid`);
-  }
-
-  getCropArea(canvas).subscribe(subject);
+const setupCropSelector = (canvas: HTMLCanvasElement) => {
+  getCropArea(canvas).subscribe(cropAreaSubject);
 
   const context = canvas.getContext('2d')!;
-  context.strokeStyle = 'rgb(234, 11, 141)';
+  context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+  context.lineWidth = 8;
 
-  subject.subscribe(rect => {
+  cropAreaSubject.subscribe(rect => {
     context.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
     if (rect !== null) {
       const { x, y, width, height } = rect;
@@ -291,7 +277,7 @@ const setupThemeToggle = () => {
     themeToggleSwitch,
     'click'
   ).pipe(
-    startWith(false),
+    startWith(true),
     scan((acc, _) => !acc),
     shareReplay()
   );
