@@ -36,7 +36,7 @@ import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './pairplay.css';
-import { getCropArea } from './squareCrop';
+import { getCropArea, getCropAreaWithFaceDetector } from './squareCrop';
 import { ImageRecorder } from './imageRecorder';
 import { VelocityTuner } from './velocityTuner';
 import { handleKeyEvent } from './keyEventHandler';
@@ -257,23 +257,61 @@ const setupLogMessage = (cameraSide: CameraSide) => {
   });
 };
 
+const setupFaceDetectionToggle = (): BehaviorSubject<boolean> => {
+  const faceDetectionToggleSwitch = document.querySelector(
+    '.face-detection-toggle input'
+  )!;
+  const faceDetectionToggle = document.querySelector('.face-detection-toggle')!;
+
+  if (typeof (FaceDetector as any) !== 'function') {
+    faceDetectionToggleSwitch.setAttribute('disabled', 'disabled');
+    return new BehaviorSubject(false);
+  }
+
+  const faceDetectionEnabled$ = new BehaviorSubject(true);
+
+  fromEvent(faceDetectionToggleSwitch, 'click')
+    .pipe<boolean>(
+      scan((acc, _) => !acc, true),
+      startWith(true),
+      tap(isChecked =>
+        faceDetectionToggle.classList.toggle(
+          'face-detection-checked',
+          isChecked
+        )
+      )
+    )
+    .subscribe(faceDetectionEnabled$);
+  return faceDetectionEnabled$;
+};
+
 const setupCropSelector = (
   canvas: HTMLCanvasElement,
   cameraSide: CameraSide
 ) => {
   let subject;
+  let video: HTMLVideoElement;
+  let xDiff = 0;
   switch (cameraSide) {
     case CameraSide.Left:
       subject = cropAreaLeftSubject;
+      video = videoLeft;
       break;
     case CameraSide.Right:
       subject = cropAreaRightSubject;
+      video = videoRight;
+      xDiff = imageSize;
       break;
     default:
       throw new Error(`camera side ${cameraSide} is invalid`);
   }
 
-  getCropArea(canvas).subscribe(subject);
+  const faceDetectionEnabled$ = setupFaceDetectionToggle();
+
+  merge(
+    getCropAreaWithFaceDetector(faceDetectionEnabled$, canvas, video, xDiff),
+    getCropArea(faceDetectionEnabled$, canvas)
+  ).subscribe(subject);
 
   const context = canvas.getContext('2d')!;
   context.strokeStyle = 'rgb(234, 11, 141)';

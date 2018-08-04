@@ -24,12 +24,12 @@
   cursor: pointer;
 }
 
-.theme-toggle {
+.theme-toggle, .face-detection-toggle {
   cursor: pointer;
   position: relative;
 }
 
-.theme-toggle input {
+.theme-toggle input, .face-detection-toggle input {
   -webkit-appearance: none;
   -moz-appearance: none;
 }
@@ -54,12 +54,20 @@
   transition: left 150ms linear;
 }
 
-.theme-checked .toggle-button-bg {
+.theme-checked .toggle-button-bg, #root.dark .toggle-button-bg {
   background-color: #FF0070;
 }
 
 .theme-checked .toggle-button-circle {
   left: 1.75rem;
+  background-color: rgb(255, 255, 255);
+}
+
+.face-detection-checked .toggle-button-circle {
+  left: 1.75rem;
+}
+
+#root.dark .toggle-button-circle {
   background-color: rgb(255, 255, 255);
 }
 
@@ -111,6 +119,9 @@ main {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.crop-selector.crop-by-mouse {
   cursor: crosshair;
 }
 
