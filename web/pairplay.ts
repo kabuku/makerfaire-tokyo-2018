@@ -1,42 +1,45 @@
 import * as tf from '@tensorflow/tfjs';
 import {
+  BehaviorSubject,
   combineLatest,
   fromEvent,
-  merge,
   interval,
-  BehaviorSubject,
+  merge,
   Observable
 } from 'rxjs';
 import {
-  map,
-  mapTo,
-  switchMap,
-  takeUntil,
   debounceTime,
   distinctUntilChanged,
-  tap,
-  shareReplay,
-  withLatestFrom,
+  filter,
+  map,
+  mapTo,
   scan,
+  shareReplay,
   startWith,
-  filter
+  switchMap,
+  takeUntil,
+  tap,
+  withLatestFrom
 } from 'rxjs/operators';
 
 import { observeConnection, RobotController, RobotName } from './robot';
 import {
   CameraSide,
-  setupCamera,
+  canvasToTensor,
   capture,
-  Rect,
   captureWithCanvas,
-  canvasToTensor
+  Rect,
+  setupCamera
 } from './camera';
-import { Command, Classifier, ModelStatus, ControlStatus } from './classifier';
-import { loadMobilenet, createPressStream } from './helper';
+import { Classifier, Command, ControlStatus, ModelStatus } from './classifier';
+import { createPressStream, loadMobilenet } from './helper';
 
 import './styles.css';
 import './pairplay.css';
 import { getCropArea } from './squareCrop';
+import { ImageRecorder } from './imageRecorder';
+import { VelocityTuner } from './velocityTuner';
+import { handleKeyEvent } from './keyEventHandler';
 
 const imageSize = 224;
 const cropAreaLeftSubject = new BehaviorSubject<Rect | null>(null);
@@ -47,9 +50,6 @@ const fullArea = {
   width: imageSize,
   height: imageSize
 };
-import { ImageRecorder } from './imageRecorder';
-import { VelocityTuner } from './velocityTuner';
-import { handleKeyEvent } from './keyEventHandler';
 import { getMqttClient } from './mqttClient';
 import { MqttClient } from 'mqtt';
 
@@ -464,8 +464,14 @@ const setupUI = async () => {
   const startClick$ = fromEvent(startPredictButton, 'click');
   const stopClick$ = fromEvent(stopPredictButton, 'click');
 
-  trainLeftClick$.subscribe(() => classifierLeft.startTraining());
-  trainRightClick$.subscribe(() => classifierRight.startTraining());
+  trainLeftClick$.subscribe(() => {
+    classifierLeft.startTraining().catch(err => console.error(err));
+    imageRecorder.recordedImages = [];
+  });
+  trainRightClick$.subscribe(() => {
+    classifierRight.startTraining().catch(err => console.error(err));
+    imageRecorder.recordedImages = [];
+  });
 
   combineLatest(
     classifierLeft.modelStatus$,

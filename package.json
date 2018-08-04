@@ -7,23 +7,34 @@
   },
   "scripts": {
     "load-model": "node scripts/loadMobilenet",
-    "web": "parcel web/index.html",
+    "web": "ts-node web/server.ts",
     "lp": "parcel lp/index.html --out-dir gh-pages",
     "lp-build": "parcel build lp/index.html --out-dir gh-pages --public-url https://kabuku.github.io/makerfaire-tokyo-2018/",
     "mqtt": "docker run -it -p 1883:1883 -p 9001:9001 -v $(pwd)/mqtt/mosquitto:/mosquitto eclipse-mosquitto:1.4.12",
     "precommit": "lint-staged",
-    "ci": "tsc && tslint \"web/**/*.ts\" -p tsconfig.json"
+    "ci": "tsc && tslint \"web/**/*.ts\" -p tsconfig.json",
+    "upload-image": "ts-node scripts/uploadPlayImage"
   },
   "license": "MIT",
   "dependencies": {
+    "@google-cloud/storage": "^1.7.0",
     "@tensorflow/tfjs": "^0.11.6",
+    "dotenv": "^6.0.0",
+    "express": "^4.16.3",
+    "gifshot": "^0.4.5",
+    "glob": "^7.1.2",
     "mqtt": "^2.18.1",
     "node-fetch": "^2.1.2",
     "qrcodejs2": "0.0.2",
     "rxjs": "^6.2.1",
+    "ts-node": "^7.0.0",
     "tslib": "^1.9.2"
   },
   "devDependencies": {
+    "@types/dotenv": "^4.0.3",
+    "@types/express": "^4.16.0",
+    "@types/glob": "^5.0.35",
+    "@types/google-cloud__storage": "^1.7.0",
     "@types/mqtt": "^2.5.0",
     "husky": "^0.14.3",
     "lint-staged": "^7.2.0",

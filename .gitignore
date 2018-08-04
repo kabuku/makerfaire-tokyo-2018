@@ -22,9 +22,11 @@ node_modules/
 .cache
 
 dist/*
+play-images/*
+play-images-uploaded/*
 
 *.js
-!scripts/**/*.js
+!scripts/loadMobilenet.js
 
 robot/esp8266_client/setting.h
 
@@ -37,6 +39,7 @@ robot/esp8266_client/setting.h
 !.gitkeep
 
 .env
+google-api-key.json
 
 gh-pages/
 wpa_supplicant.conf
