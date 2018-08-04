@@ -75,6 +75,7 @@ class MQTTClient(object):
         self.server_host = server_host
 
     def connect(self):
+        self.client.will_set("{}/connection".format(self.robot_name), payload=0, qos=1, retain=True)
         self.client.connect(self.server_host, 1883, 60)
 
         # Blocking call that processes network traffic, dispatches callbacks and
@@ -90,6 +91,7 @@ class MQTTClient(object):
         # reconnect then subscriptions will be renewed.
         client.subscribe("{}/right".format(self.robot_name), qos=1)
         client.subscribe("{}/left".format(self.robot_name), qos=1)
+        client.publish("{}/connection".format(self.robot_name), payload=1, qos=1, retain=True)
 
     # The callback for when a PUBLISH message is received from the server.
     def on_message(self, client, userdata, msg):
@@ -105,6 +107,7 @@ class MQTTClient(object):
         self.__del__()
 
     def __del__(self):
+        self.client.publish("{}/connection".format(self.robot_name), payload=0, qos=1, retain=True)
         self.client.disconnect()
         self.left_servo.__del__()
         self.right_servo.__del__()
