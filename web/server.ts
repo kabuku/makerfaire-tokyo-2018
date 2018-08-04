@@ -7,7 +7,8 @@ import { uploadPlayImage } from './uploadPlayImage';
 
 const Bundler = require('parcel-bundler');
 
-const bundler = new Bundler('./web/index.html');
+// const bundler = new Bundler('./web/index.html');
+const bundler = new Bundler('./web/singleplay.html');
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
