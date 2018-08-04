@@ -39,3 +39,4 @@ robot/esp8266_client/setting.h
 .env
 
 gh-pages/
+wpa_supplicant.conf
