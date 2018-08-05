@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Kabuku @Maker Faire Tokyo 2018</title>
+</head>
+
+<body>
+
+  <div id="root" class="dark">
+
+    <header class="header">
+      <select id="camera-selector"></select>
+      <a class="show-records" href="#">タタカイノキロク</a>
+      <div class="settings header-button">Settings</div>
+    </header>
+
+    <div class="content">
+
+      <h1>ガンメンタイセン</h1>
+
+      <main>
+
+        <div class="webcam-box left">
+          <video autoplay playsinline muted id="webcam" width="448" height="224"></video>
+          <canvas class="crop-selector" width="224" height="224"></canvas>
+        </div>
+
+        <div class="command-controls">
+          <div class="command-control forward">
+            <img>
+            <button>↑</button>
+            <div class="count">0</div>
+          </div>
+          <div class="command-control rotate">
+            <img>
+            <button>⤵︎︎︎</button>
+            <div class="count">0</div>
+          </div>
+          <div class="command-control backward">
+            <img>
+            <button>↓</button>
+            <div class="count">0</div>
+          </div>
+        </div>
+
+        <div class="log-message">Loading...</div>
+
+        <div class="model-controls">
+          <button class="train" disabled>Train</button>
+          <button class="start-predict" disabled>Start</button>
+          <button class="stop-predict hidden">Stop</button>
+        </div>
+
+      </main>
+
+      <select class="robot-name"></select>
+    </div>
+
+    <div class="modal-container">
+
+      <div class="modal-content modal-settings-content">
+
+        <h5>テーマ</h5>
+        <div class="theme-toggle">
+          <label>
+            <input type="checkbox" checked>
+            <span class="toggle-button-bg"></span>
+            <span class="toggle-button-circle"></span>
+          </label>
+        </div>
+
+        <h5>サイド</h5>
+        <form class="cameraside-selector">
+          <label>左:
+            <input type="radio" name="cameraside" value="left" checked>
+          </label>
+          <label>右:
+            <input type="radio" name="cameraside" value="right">
+          </label>
+        </form>
+
+        <h5>チューニング</h5>
+        <table class="velocity-tuning">
+          <thead>
+            <tr>
+              <th></th>
+              <th>左</th>
+              <th>右</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>前</td>
+              <td>
+                <input type="number" data-target="left-forward" step="0.1">
+              </td>
+              <td>
+                <input type="number" data-target="right-forward" step="0.1">
+              </td>
+            </tr>
+            <tr>
+              <td>回</td>
+              <td>
+                <input type="number" data-target="left-rotate" step="0.1">
+              </td>
+              <td>
+                <input type="number" data-target="right-rotate" step="0.1">
+              </td>
+            </tr>
+            <tr>
+              <td>後</td>
+              <td>
+                <input type="number" data-target="left-backward" step="0.1">
+              </td>
+              <td>
+                <input type="number" data-target="right-backward" step="0.1">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
+
+      <div class="modal-content modal-recorded-images">
+
+        <div class="modal-footer">
+          <button class="toggle-left-image">Left</button>
+          <button class="share-image">
+            Share
+            <div class="loading-ring"></div>
+          </button>
+          <button class="toggle-right-image">Right</button>
+          <button class="close-qrcode">Back</button>
+        </div>
+
+        <img class="recorded-image-viewer" width="640" height="480">
+
+        <div class="image-qrcode"></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="./singleplay.ts"></script>
+</body>
+
+</html>

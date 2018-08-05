@@ -81,7 +81,7 @@ export class ImageRecorder {
     });
   }
 
-  addImageURLs(urls: [string, string]) {
+  addImageURLs(urls: [string] | [string, string]) {
     this.recordedImages = [...this.recordedImages, urls];
   }
 
