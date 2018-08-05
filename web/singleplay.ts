@@ -406,7 +406,7 @@ const setupUI = async () => {
   const cropSelector = document.querySelector(
     '.webcam-box .crop-selector'
   )! as HTMLCanvasElement;
-  setupCropSelector(cropSelector, CameraSide.Left);
+  setupCropSelector(cropSelector);
 
   setupCommandControl(destImage);
 
