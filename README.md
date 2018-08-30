@@ -27,6 +27,11 @@ $ npm run mqtt # run MQTT server on Docker
 $ npx mqtt sub -t 'nobunaga/left' -h 'localhost'
 ```
 
+## Face Detection
+
+顔認識は簡易的に、 [Shape Detection API](https://www.chromestatus.com/feature/4757990523535360) により実装されています。
+Chrome でこれを利用するには chrome://flags で "Experimental Web Platform features" を有効にする必要があります。
+
 ## Google Cloud Storage との連携
 
 プレイ画像を共有する機能を有効にするには、 Google Cloud Storage との連携が必要です。
